@@ -19,8 +19,8 @@ RUN go mod download
 # Copy entire source code to match module structure
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./src
+# Build the application from module root using full module path
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main securevault-backend/src
 
 # Final stage
 FROM alpine:latest
