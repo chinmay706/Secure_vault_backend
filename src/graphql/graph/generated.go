@@ -8,7 +8,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	"securevault-backend/api"
+	"securevault-backend/src/api"
 	"securevault-backend/src/graphql/graph/model"
 	"securevault-backend/src/models"
 	"strconv"
