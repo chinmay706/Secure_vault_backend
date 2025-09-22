@@ -16,11 +16,8 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download
 
-# Copy source code
-COPY src/ ./src/
-
-# Copy environment file
-COPY .env ./
+# Copy entire source code to match module structure
+COPY . .
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./src
@@ -38,10 +35,10 @@ WORKDIR /root/
 COPY --from=builder /app/main .
 
 # Copy migration files
-COPY src/migrations/ ./migrations/
+COPY --from=builder /app/src/migrations/ ./migrations/
 
 # Copy environment file
-COPY .env ./
+COPY --from=builder /app/.env ./
 
 # Create storage directory
 RUN mkdir -p ./storage
