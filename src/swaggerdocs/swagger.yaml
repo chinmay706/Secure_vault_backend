@@ -1,0 +1,1863 @@
+basePath: /api/v1
+definitions:
+  api.ActiveUserEntry:
+    properties:
+      file_count:
+        type: integer
+      last_upload:
+        type: string
+      total_downloads:
+        type: integer
+      user_email:
+        type: string
+      user_id:
+        type: string
+    type: object
+  api.AdminFileEntry:
+    properties:
+      download_count:
+        type: integer
+      filename:
+        type: string
+      id:
+        type: string
+      is_public:
+        type: boolean
+      mime_type:
+        type: string
+      size:
+        type: integer
+      upload_date:
+        type: string
+      user_email:
+        type: string
+      user_id:
+        type: string
+    type: object
+  api.AdminFilesResponse:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/api.AdminFileEntry'
+        type: array
+      pagination:
+        $ref: '#/definitions/api.PaginationInfo'
+    type: object
+  api.AdminStatsResponse:
+    properties:
+      files_by_type:
+        additionalProperties:
+          type: integer
+        type: object
+      most_active_users:
+        items:
+          $ref: '#/definitions/api.ActiveUserEntry'
+        type: array
+      quota_utilization_percent:
+        type: number
+      storage_by_user:
+        items:
+          $ref: '#/definitions/api.UserStorageEntry'
+        type: array
+      total_files:
+        type: integer
+      total_quota_bytes:
+        type: integer
+      total_size_bytes:
+        type: integer
+      total_users:
+        type: integer
+      users_by_registration_date:
+        items:
+          $ref: '#/definitions/api.RegistrationEntry'
+        type: array
+    type: object
+  api.AuthResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/api.UserResponseData'
+    type: object
+  api.CreateFolderRequest:
+    properties:
+      name:
+        type: string
+      parent_id:
+        type: string
+    type: object
+  api.ErrorDetail:
+    properties:
+      code:
+        type: string
+      details: {}
+      message:
+        type: string
+    type: object
+  api.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/api.ErrorDetail'
+    type: object
+  api.FileListResponse:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/api.FileResponse'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
+  api.FileResponse:
+    properties:
+      created_at:
+        type: string
+      download_count:
+        type: integer
+      folder_id:
+        type: string
+      id:
+        type: string
+      is_public:
+        type: boolean
+      mime_type:
+        type: string
+      original_filename:
+        type: string
+      share_link:
+        $ref: '#/definitions/api.ShareLinkResponse'
+      size_bytes:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+    type: object
+  api.FolderChildrenResponse:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/api.FolderFileResponse'
+        type: array
+      files_pagination:
+        $ref: '#/definitions/api.FolderPaginationInfo'
+      folders:
+        items:
+          $ref: '#/definitions/api.FolderResponse'
+        type: array
+    type: object
+  api.FolderDetailsResponse:
+    properties:
+      breadcrumbs:
+        items:
+          $ref: '#/definitions/api.FolderResponse'
+        type: array
+      folder:
+        $ref: '#/definitions/api.FolderResponse'
+    type: object
+  api.FolderFileResponse:
+    properties:
+      created_at:
+        type: string
+      download_count:
+        type: integer
+      folder_id:
+        type: string
+      id:
+        type: string
+      is_public:
+        type: boolean
+      mime_type:
+        type: string
+      original_filename:
+        type: string
+      size_bytes:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+    type: object
+  api.FolderPaginationInfo:
+    properties:
+      has_more:
+        type: boolean
+      has_next:
+        type: boolean
+      has_previous:
+        type: boolean
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total_files:
+        type: integer
+      total_folders:
+        description: Additional fields for GraphQL compatibility
+        type: integer
+      total_items:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  api.FolderResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      parent_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  api.FolderShareLinkResponse:
+    properties:
+      created_at:
+        type: string
+      download_count:
+        type: integer
+      id:
+        type: string
+      is_active:
+        type: boolean
+      token:
+        type: string
+    type: object
+  api.FolderShareLinkStatusResponse:
+    properties:
+      has_share_link:
+        type: boolean
+      token:
+        type: string
+    type: object
+  api.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  api.MoveFileRequest:
+    properties:
+      folder_id:
+        type: string
+    type: object
+  api.PaginationInfo:
+    properties:
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  api.PromoteUserRequest:
+    properties:
+      user_id:
+        type: string
+    type: object
+  api.PublicFileInfo:
+    properties:
+      created_at:
+        type: string
+      download_url:
+        type: string
+      id:
+        type: string
+      mime_type:
+        type: string
+      original_filename:
+        type: string
+      size_bytes:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+    type: object
+  api.PublicFileResponse:
+    properties:
+      created_at:
+        type: string
+      download_url:
+        type: string
+      folder_id:
+        type: string
+      id:
+        type: string
+      mime_type:
+        type: string
+      original_filename:
+        type: string
+      size_bytes:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+    type: object
+  api.PublicFolderInfo:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      parent_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  api.PublicFolderTreeResponse:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/api.PublicFileInfo'
+        type: array
+      folder:
+        $ref: '#/definitions/api.PublicFolderInfo'
+      subfolders:
+        items:
+          $ref: '#/definitions/api.PublicFolderTreeResponse'
+        type: array
+    type: object
+  api.RegistrationEntry:
+    properties:
+      count:
+        type: integer
+      date:
+        type: string
+    type: object
+  api.ShareLinkResponse:
+    properties:
+      created_at:
+        type: string
+      download_count:
+        type: integer
+      is_active:
+        type: boolean
+      token:
+        type: string
+    type: object
+  api.SignupRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    type: object
+  api.StatsResponse:
+    properties:
+      files_by_type:
+        additionalProperties:
+          type: integer
+        type: object
+      quota_available_bytes:
+        type: integer
+      quota_bytes:
+        type: integer
+      quota_used_bytes:
+        type: integer
+      total_files:
+        type: integer
+      total_size_bytes:
+        type: integer
+      upload_history:
+        items:
+          $ref: '#/definitions/api.UploadHistoryEntry'
+        type: array
+    type: object
+  api.TogglePublicRequest:
+    properties:
+      is_public:
+        example: true
+        type: boolean
+    type: object
+  api.TogglePublicResponse:
+    properties:
+      file:
+        $ref: '#/definitions/api.FileResponse'
+    type: object
+  api.UpdateFolderRequest:
+    properties:
+      name:
+        type: string
+      parent_id:
+        type: string
+    type: object
+  api.UpdatePasswordRequest:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        type: string
+    type: object
+  api.UploadHistoryEntry:
+    properties:
+      count:
+        type: integer
+      date:
+        type: string
+      total_size:
+        type: integer
+    type: object
+  api.UploadResponse:
+    properties:
+      file:
+        $ref: '#/definitions/api.FileResponse'
+      hash:
+        type: string
+      is_duplicate:
+        type: boolean
+    type: object
+  api.UserResponseData:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      rate_limit_rps:
+        type: integer
+      role:
+        $ref: '#/definitions/models.UserRole'
+      storage_quota_bytes:
+        type: integer
+    type: object
+  api.UserStorageEntry:
+    properties:
+      file_count:
+        type: integer
+      quota_bytes:
+        type: integer
+      total_size_bytes:
+        type: integer
+      user_email:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.UserRole:
+    enum:
+    - user
+    - admin
+    type: string
+    x-enum-varnames:
+    - UserRoleUser
+    - UserRoleAdmin
+host: localhost:8080
+info:
+  contact:
+    email: support@securevault.com
+    name: API Support
+    url: http://localhost:8080/support
+  description: SecureVault is a secure file storage service with S3 integration, user
+    authentication, file sharing, and administrative features.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://localhost:8080/terms/
+  title: SecureVault API
+  version: "1.0"
+paths:
+  /admin/files:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of all files in the system with admin-level
+        details
+      parameters:
+      - description: Filter by specific user UUID
+        in: query
+        name: user_id
+        type: string
+      - description: Filter by user email (partial match)
+        in: query
+        name: user_email
+        type: string
+      - description: Filter files uploaded after date (YYYY-MM-DD)
+        in: query
+        name: uploaded_after
+        type: string
+      - description: Filter files uploaded before date (YYYY-MM-DD)
+        in: query
+        name: uploaded_before
+        type: string
+      - description: Sort field (filename, size, upload_date, user_email)
+        in: query
+        name: sort
+        type: string
+      - description: Sort order (asc, desc)
+        in: query
+        name: order
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of all files with admin details
+          schema:
+            $ref: '#/definitions/api.AdminFilesResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Admin privileges required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all files (Admin)
+      tags:
+      - Admin
+  /admin/files/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Admin can delete any file regardless of ownership (includes S3
+        cleanup)
+      parameters:
+      - description: File ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: File successfully deleted
+        "400":
+          description: Invalid file ID format
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Admin privileges required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: File not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete any file (Admin)
+      tags:
+      - Admin
+  /admin/promote:
+    post:
+      consumes:
+      - application/json
+      description: Promote an existing user to admin role (admin only)
+      parameters:
+      - description: User ID to promote
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.PromoteUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User successfully promoted to admin
+          schema:
+            $ref: '#/definitions/api.UserResponseData'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden - admin access required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Promote user to admin
+      tags:
+      - Admin
+  /admin/signup:
+    post:
+      consumes:
+      - application/json
+      description: Create a new admin user account with email and password
+      parameters:
+      - description: Admin registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.SignupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Admin user successfully registered
+          schema:
+            $ref: '#/definitions/api.AuthResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Email already exists
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Register a new admin user
+      tags:
+      - Admin
+  /admin/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive system-wide statistics including users, files,
+        storage, and analytics
+      parameters:
+      - description: Start date for time-based data (YYYY-MM-DD)
+        in: query
+        name: from
+        type: string
+      - description: End date for time-based data (YYYY-MM-DD)
+        in: query
+        name: to
+        type: string
+      - description: Time grouping (day, week, month, year)
+        in: query
+        name: group_by
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: System-wide statistics
+          schema:
+            $ref: '#/definitions/api.AdminStatsResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Admin privileges required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get system statistics (Admin)
+      tags:
+      - Admin
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password to get JWT token
+      parameters:
+      - description: User login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User successfully authenticated
+          schema:
+            $ref: '#/definitions/api.AuthResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Authenticate user
+      tags:
+      - Authentication
+  /auth/signup:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account with email and password
+      parameters:
+      - description: User registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.SignupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User successfully registered
+          schema:
+            $ref: '#/definitions/api.AuthResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Email already exists
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - Authentication
+  /files:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of files owned by the authenticated user with
+        optional filtering
+      parameters:
+      - description: Filter by filename (partial match)
+        in: query
+        name: filename
+        type: string
+      - description: Filter by MIME type
+        in: query
+        name: mime_type
+        type: string
+      - description: Filter by comma-separated tags
+        in: query
+        name: tags
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of user files
+          schema:
+            $ref: '#/definitions/api.FileListResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List user files
+      tags:
+      - Files
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a new file to secure storage with optional tags
+      parameters:
+      - description: File to upload (max 100MB)
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Comma-separated tags for the file
+        in: formData
+        name: tags
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: File successfully uploaded
+          schema:
+            $ref: '#/definitions/api.UploadResponse'
+        "400":
+          description: Invalid request or no file provided
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "413":
+          description: File too large
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Upload failed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload a file
+      tags:
+      - Files
+  /files/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a file owned by the authenticated user (includes S3 cleanup)
+      parameters:
+      - description: File ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: File successfully deleted
+        "400":
+          description: Invalid file ID format
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: File not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete file
+      tags:
+      - Files
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific file including metadata
+        and share link
+      parameters:
+      - description: File ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File details
+          schema:
+            $ref: '#/definitions/api.FileResponse'
+        "400":
+          description: Invalid file ID format
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: File not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get file details
+      tags:
+      - Files
+  /files/{id}/download:
+    get:
+      description: Download file content with proper headers and content disposition
+      parameters:
+      - description: File ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: File content with appropriate headers
+          schema:
+            type: file
+        "400":
+          description: Invalid file ID format
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: File not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Download failed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Download file
+      tags:
+      - Files
+  /files/{id}/move:
+    patch:
+      consumes:
+      - application/json
+      description: Move a file to a different folder or root
+      parameters:
+      - description: File ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Move file request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.MoveFileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File moved successfully
+          schema:
+            $ref: '#/definitions/api.FileResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: File not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Move file to folder
+      tags:
+      - files
+  /files/{id}/public:
+    patch:
+      consumes:
+      - application/json
+      description: Make a file public or private. When made public, generates a share
+        link. When made private, removes the share link.
+      parameters:
+      - description: File ID (UUID)
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Public visibility setting
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.TogglePublicRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated file with share link info (if public)
+          schema:
+            $ref: '#/definitions/api.TogglePublicResponse'
+        "400":
+          description: Invalid file ID or JSON body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: File not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Toggle file public visibility
+      tags:
+      - Files
+  /folders:
+    get:
+      consumes:
+      - application/json
+      description: Get folders and files within a specific folder (or root)
+      parameters:
+      - description: Parent folder ID (omit for root)
+        in: query
+        name: parent_id
+        type: string
+      - default: 1
+        description: Page number for file pagination
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page for files
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Folder contents retrieved successfully
+          schema:
+            $ref: '#/definitions/api.FolderChildrenResponse'
+        "400":
+          description: Invalid request parameters
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Parent folder not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List folder children
+      tags:
+      - folders
+    post:
+      consumes:
+      - application/json
+      description: Create a new folder in the user's file system
+      parameters:
+      - description: Folder creation data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateFolderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Folder successfully created
+          schema:
+            $ref: '#/definitions/api.FolderResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Folder already exists
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new folder
+      tags:
+      - folders
+  /folders/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a folder and all its contents
+      parameters:
+      - description: Folder ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Folder deleted successfully
+        "400":
+          description: Invalid folder ID
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Folder not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete folder
+      tags:
+      - folders
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific folder including breadcrumbs
+      parameters:
+      - description: Folder ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Folder details retrieved successfully
+          schema:
+            $ref: '#/definitions/api.FolderDetailsResponse'
+        "400":
+          description: Invalid folder ID
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Folder not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get folder details
+      tags:
+      - folders
+    patch:
+      consumes:
+      - application/json
+      description: Update folder name or move to different parent
+      parameters:
+      - description: Folder ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Folder update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.UpdateFolderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Folder updated successfully
+          schema:
+            $ref: '#/definitions/api.FolderResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Folder not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update folder
+      tags:
+      - folders
+  /folders/{id}/share:
+    delete:
+      consumes:
+      - application/json
+      description: Remove the public share link for a folder and revert files to original
+        publicity state
+      parameters:
+      - description: Folder ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Share link deleted successfully with files reverted
+        "400":
+          description: Invalid folder ID
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Folder or share link not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete folder share link with file publicity reversion
+      tags:
+      - folders
+    post:
+      consumes:
+      - application/json
+      description: Create a public share link for a folder and automatically make
+        all nested files public
+      parameters:
+      - description: Folder ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Share link created successfully with files made public
+          schema:
+            $ref: '#/definitions/api.FolderShareLinkResponse'
+        "400":
+          description: Invalid folder ID
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Folder not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create folder share link with file publicity
+      tags:
+      - folders
+  /folders/{id}/share/status:
+    get:
+      consumes:
+      - application/json
+      description: Check whether a folder has any active sharelinks and return the
+        token if exists
+      parameters:
+      - description: Folder ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sharelink status retrieved successfully with token if exists
+          schema:
+            $ref: '#/definitions/api.FolderShareLinkStatusResponse'
+        "400":
+          description: Invalid folder ID
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Folder not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Check if folder has sharelinks
+      tags:
+      - folders
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Check if the service is running and healthy
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Service is healthy
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - Health
+  /p/{token}:
+    get:
+      description: Download a publicly shared file using share token (no authentication
+        required)
+      parameters:
+      - description: Public share token
+        in: path
+        name: token
+        required: true
+        type: string
+      - description: ETag for cache validation
+        in: header
+        name: If-None-Match
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: File content
+          schema:
+            type: file
+        "304":
+          description: Not modified (cached)
+        "400":
+          description: Invalid token
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Link revoked
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Link not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "410":
+          description: Link expired
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Download public file
+      tags:
+      - Public
+    head:
+      description: Download a publicly shared file using share token (no authentication
+        required)
+      parameters:
+      - description: Public share token
+        in: path
+        name: token
+        required: true
+        type: string
+      - description: ETag for cache validation
+        in: header
+        name: If-None-Match
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: File content
+          schema:
+            type: file
+        "304":
+          description: Not modified (cached)
+        "400":
+          description: Invalid token
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Link revoked
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Link not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "410":
+          description: Link expired
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Download public file
+      tags:
+      - Public
+  /p/f/{token}:
+    get:
+      consumes:
+      - application/json
+      description: Access a folder via public share token (no authentication required)
+      parameters:
+      - description: Share token
+        in: path
+        name: token
+        required: true
+        type: string
+      - default: 1
+        description: Page number for file pagination
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page for files
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Folder contents retrieved successfully
+          schema:
+            $ref: '#/definitions/api.FolderChildrenResponse'
+        "400":
+          description: Invalid token
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Link revoked
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Link not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "410":
+          description: Link expired
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Access public folder
+      tags:
+      - public
+  /public/files/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get file details for public files (no authentication required)
+      parameters:
+      - description: File ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File details
+          schema:
+            $ref: '#/definitions/api.PublicFileResponse'
+        "400":
+          description: Invalid file ID
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: File is private
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: File not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get public file details by ID
+      tags:
+      - Public
+  /public/files/{id}/download:
+    get:
+      description: Download file content for public files (no authentication required)
+      parameters:
+      - description: File ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: File content with appropriate headers
+          schema:
+            type: file
+        "400":
+          description: Invalid file ID format
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: File not public
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: File not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Download failed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Download public file
+      tags:
+      - Public
+  /public/files/share/{token}:
+    get:
+      consumes:
+      - application/json
+      description: Get file details using share token (no authentication required)
+      parameters:
+      - description: File share token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File details
+          schema:
+            $ref: '#/definitions/api.PublicFileResponse'
+        "400":
+          description: Invalid token
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: File is private
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: File not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "410":
+          description: Share link expired
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get public file details by share token
+      tags:
+      - Public
+  /public/files/share/{token}/download:
+    get:
+      description: Download file content using share token (no authentication required)
+      parameters:
+      - description: File share token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: File content with appropriate headers
+          schema:
+            type: file
+        "400":
+          description: Invalid token format
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Share link expired or inactive
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: File not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Download failed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Download file by share token
+      tags:
+      - Public
+  /public/folders/share/{token}:
+    get:
+      consumes:
+      - application/json
+      description: Get complete folder tree structure with all subfolders and files
+        using share token (no authentication required)
+      parameters:
+      - description: Folder share token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Folder tree with subfolders and files
+          schema:
+            $ref: '#/definitions/api.PublicFolderTreeResponse'
+        "400":
+          description: Invalid token
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Folder not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "410":
+          description: Share link expired
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get public folder tree by share token
+      tags:
+      - Public
+  /stats/me:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive statistics for the authenticated user including
+        storage usage, file counts, and upload history
+      parameters:
+      - description: Start date for upload history (YYYY-MM-DD)
+        in: query
+        name: from
+        type: string
+      - description: End date for upload history (YYYY-MM-DD)
+        in: query
+        name: to
+        type: string
+      - description: Grouping for upload history (day, week, month, year)
+        in: query
+        name: group_by
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User statistics
+          schema:
+            $ref: '#/definitions/api.StatsResponse'
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user statistics
+      tags:
+      - Statistics
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a user account (user can only delete their own account)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User successfully deleted
+        "400":
+          description: Invalid user ID
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden - can only delete own account
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete user account
+      tags:
+      - Authentication
+  /users/{id}/password:
+    patch:
+      consumes:
+      - application/json
+      description: Update a user's password (user can only update their own password)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Password update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.UpdatePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password successfully updated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden - can only update own password
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user password
+      tags:
+      - Authentication
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

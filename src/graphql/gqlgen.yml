@@ -1,0 +1,41 @@
+# Where are all the schema files located?
+schema:
+  - graph/*.graphqls
+
+# Where should the generated server code go?
+exec:
+  package: graph
+  layout: single-file
+  filename: graph/generated.go
+
+# Where should any generated models go?
+model:
+  filename: graph/model/models_gen.go
+  package: model
+
+# Where should the resolver implementations go?
+resolver:
+  package: graph
+  layout: follow-schema
+  dir: graph
+  filename_template: "{name}.resolvers.go"
+
+# Autobind to existing Go models
+autobind:
+  - "securevault-backend/src/models"
+  - "securevault-backend/src/api"
+
+# Type mapping
+models:
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.ID
+  UUID:
+    model:
+      - github.com/google/uuid.UUID
+  DateTime:
+    model:
+      - time.Time
+  UserRole:
+    model:
+      - securevault-backend/src/models.UserRole

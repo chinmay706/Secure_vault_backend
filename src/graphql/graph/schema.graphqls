@@ -1,0 +1,283 @@
+# GraphQL Schema for SecureVault
+# Mirrors REST API endpoints with snake_case field names to match existing JSON responses
+
+# Custom scalars
+scalar UUID
+scalar DateTime
+
+# Enums
+enum UserRole {
+  user
+  admin
+}
+
+# Types matching existing models and REST responses
+type User {
+  id: UUID!
+  email: String!
+  role: UserRole!
+  rate_limit_rps: Int!
+  storage_quota_bytes: Int!
+  created_at: DateTime!
+}
+
+type File {
+  id: UUID!
+  owner_id: UUID!
+  original_filename: String!
+  mime_type: String!
+  size_bytes: Int!
+  folder_id: UUID
+  is_public: Boolean!
+  download_count: Int!
+  tags: [String!]!
+  created_at: DateTime!
+  updated_at: DateTime!
+  share_link: ShareLink
+}
+
+type Folder {
+  id: UUID!
+  owner_id: UUID!
+  name: String!
+  parent_id: UUID
+  created_at: DateTime!
+  updated_at: DateTime!
+  share_link: ShareLink
+}
+
+type ShareLink {
+  id: UUID!
+  token: String!
+  is_active: Boolean!
+  download_count: Int!
+  created_at: DateTime!
+}
+
+# Auth payload for login/signup
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+# Statistics types matching REST API exactly
+type StatsResponse {
+  total_files: Int!
+  total_size_bytes: Int!
+  quota_bytes: Int!
+  quota_used_bytes: Int!
+  quota_available_bytes: Int!
+  files_by_type: [FileTypeEntry!]!
+  upload_history: [UploadHistoryEntry!]!
+}
+
+type FileTypeEntry {
+  mime_type: String!
+  count: Int!
+}
+
+type UploadHistoryEntry {
+  date: String!
+  count: Int!
+  total_size: Int!
+}
+
+type AdminStatsResponse {
+  total_users: Int!
+  total_files: Int!
+  total_size_bytes: Int!
+  total_quota_bytes: Int!
+  quota_utilization_percent: Float!
+  files_by_type: [FileTypeEntry!]!
+  users_by_registration_date: [RegistrationEntry!]!
+  storage_by_user: [UserStorageEntry!]!
+  most_active_users: [ActiveUserEntry!]!
+}
+
+type RegistrationEntry {
+  date: String!
+  count: Int!
+}
+
+type UserStorageEntry {
+  user_id: UUID!
+  user_email: String!
+  file_count: Int!
+  total_size_bytes: Int!
+  quota_bytes: Int!
+}
+
+type ActiveUserEntry {
+  user_id: UUID!
+  user_email: String!
+  file_count: Int!
+  last_upload: DateTime
+  total_downloads: Int!
+}
+
+# List responses matching REST structure exactly
+type FileListResponse {
+  files: [File!]!
+  page: Int!
+  page_size: Int!
+  total: Int!
+}
+
+# Folder response types matching REST API
+type FolderDetailsResponse {
+  folder: Folder!
+  breadcrumbs: [Folder!]!
+}
+
+type FolderChildrenResponse {
+  folders: [Folder!]!
+  files: [File!]!
+  pagination: FolderPaginationInfo!
+}
+
+type FolderPaginationInfo {
+  page: Int!
+  page_size: Int!
+  total_folders: Int!
+  total_files: Int!
+  has_more: Boolean!
+}
+
+type AdminFilesResponse {
+  files: [AdminFileEntry!]!
+  pagination: PaginationInfo!
+}
+
+type AdminFileEntry {
+  id: UUID!
+  filename: String!
+  size: Int!
+  mime_type: String!
+  upload_date: DateTime!
+  user_email: String!
+  user_id: UUID!
+  is_public: Boolean!
+  download_count: Int!
+}
+
+type PaginationInfo {
+  page: Int!
+  page_size: Int!
+  total: Int!
+  total_pages: Int!
+}
+
+# Root Query type
+type Query {
+  # Simple test query
+  hello: String!
+
+  # Current user info (mirrors /api/v1/stats/me user portion)
+  me: User!
+
+  # List current user's files with filters (mirrors GET /api/v1/files)
+  files(
+    filename: String
+    mime_type: String
+    folder_id: UUID # filter by folder ID - UUID or null for root level
+    tags: String # comma-separated
+    page: Int = 1
+    page_size: Int = 20
+  ): FileListResponse!
+
+  # Folder queries (mirrors REST folder endpoints)
+  # List folder contents (mirrors GET /api/v1/folders)
+  folders(parent_id: UUID): FolderChildrenResponse!
+
+  # Simple query to get only folders (no files) - avoids complex SQL
+  foldersOnly(parent_id: UUID): [Folder!]!
+
+  # Get all folders owned by the current user (flat list for client-side tree building)
+  allFolders: [Folder!]!
+
+  # Get folder details with breadcrumbs (mirrors GET /api/v1/folders/{id})
+  folder(id: UUID!): FolderDetailsResponse!
+
+  # Get file details by ID (owner only) (mirrors GET /api/v1/files/{id})
+  file(id: UUID!): File!
+
+  # Current user's statistics (mirrors /api/v1/stats/me exactly)
+  stats(
+    from: String # Start date for upload history (YYYY-MM-DD)
+    to: String # End date for upload history (YYYY-MM-DD)
+    group_by: String # Grouping for upload history (day, week, month, year)
+  ): StatsResponse!
+
+  # Public file metadata by token (no auth required) (mirrors public download metadata)
+  publicFile(token: String!): File!
+
+  # Public folder access by token (no auth required) (mirrors GET /api/v1/p/f/{token})
+  # Returns the contents of the shared folder (files and subfolders), but not the main folder info
+  publicFolder(
+    token: String!
+    page: Int = 1
+    page_size: Int = 20
+  ): FolderChildrenResponse!
+
+  # Admin-only queries
+  # List all files with admin details (mirrors GET /api/v1/admin/files)
+  adminFiles(
+    user_id: UUID
+    user_email: String
+    filename: String
+    mime_type: String
+    tags: String
+    page: Int = 1
+    page_size: Int = 20
+  ): AdminFilesResponse!
+
+  # Global admin statistics (mirrors GET /api/v1/admin/stats)
+  adminStats: AdminStatsResponse!
+}
+
+# Root Mutation type
+type Mutation {
+  # Authentication mutations (mirror REST auth endpoints)
+  signup(email: String!, password: String!): AuthPayload!
+  login(email: String!, password: String!): AuthPayload!
+
+  # File management mutations
+  # Toggle file public visibility (mirrors PATCH /api/v1/files/{id}/public)
+  toggleFilePublic(id: UUID!, is_public: Boolean!): File!
+
+  # Delete file (mirrors DELETE /api/v1/files/{id})
+  deleteFile(id: UUID!): Boolean!
+
+  # Move file to folder (mirrors PATCH /api/v1/files/{id}/move)
+  moveFile(file_id: UUID!, folder_id: UUID): File!
+
+  # Folder mutations (mirrors REST folder endpoints)
+  # Create folder (mirrors POST /api/v1/folders)
+  createFolder(name: String!, parent_id: UUID): Folder!
+
+  # Update/rename folder (mirrors PATCH /api/v1/folders/{id})
+  updateFolder(id: UUID!, name: String): Folder!
+
+  # Move folder (mirrors PATCH /api/v1/folders/{id} with parent_id)
+  moveFolder(id: UUID!, parent_id: UUID): Folder!
+
+  # Delete folder (mirrors DELETE /api/v1/folders/{id})
+  deleteFolder(id: UUID!, recursive: Boolean = true): Boolean!
+
+  # Folder sharing mutations (mirror REST folder sharing endpoints)
+  # Create folder share link (mirrors POST /api/v1/folders/{id}/share)
+  createFolderShareLink(id: UUID!): ShareLink!
+
+  # Delete folder share link (mirrors DELETE /api/v1/folders/{id}/share)
+  deleteFolderShareLink(id: UUID!): Boolean!
+
+  # Admin-only mutations
+  # Admin delete file (mirrors DELETE /api/v1/admin/files/{id})
+  adminDeleteFile(id: UUID!): Boolean!
+}
+
+# Note: File upload and download remain REST-only as specified
+# Clients should use:
+# - POST /api/v1/files for uploads (multipart/form-data)
+# - GET /api/v1/files/{id}/download for downloads
+# - GET /p/{token} for public downloads

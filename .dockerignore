@@ -1,0 +1,94 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+main
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Documentation
+*.md
+docs/
+
+# Test files and directories
+tests/
+test-files/
+test-storage/
+*_test.go
+*.test
+
+# Development files
+.env.local
+.env.development
+.env.test
+
+# Build artifacts
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# Storage (runtime files)
+storage/
+
+# Swagger docs (include in image for runtime Swagger UI)
+
+# Backup files
+*.bak
+*.backup
+
+# Temporary files
+tmp/
+temp/
+
+# Coverage reports
+coverage.txt
+coverage.html
+
+# Air live reload
+.air.toml
+tmp/
+
+# Development scripts
+regenerate-swagger.bat
+
+# GraphQL test suite
+graphql_test_suite.go

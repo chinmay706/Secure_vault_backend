@@ -1,0 +1,42 @@
+###############################################
+# Git ignore rules for backend (Go project)
+###############################################
+
+# Go build outputs / binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Dependency/vendor directory (if used)
+vendor/
+
+# IDE/editor settings
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Environment files
+.env
+
+# Build artifacts
+bin/
+build/
+dist/
+coverage/
+
+# Local storage and sample test files (do not commit)
+test-files/
+storage/
+
+

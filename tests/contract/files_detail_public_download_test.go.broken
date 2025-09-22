@@ -1,0 +1,473 @@
+package contract
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/google/uuid"
+)
+
+// TestFilesDetail tests GET /api/v1/files/{id}
+func TestFilesDetail(t *testing.T) {
+	app := TestApp(t)
+
+	// Create a user and get token
+	userToken := createTestUserAndGetToken(t, app, "filedetail@example.com", "testpass123")
+	
+	// Upload a test file to get a valid file ID
+	fileContent := strings.NewReader("test file content for detail test")
+	body := &bytes.Buffer{}
+	writer := createMultipartWriter(body, "test-detail.txt", fileContent)
+	writer.Close()
+
+	uploadReq := httptest.NewRequest("POST", "/api/v1/files", body)
+	uploadReq.Header.Set("Content-Type", writer.FormDataContentType())
+	uploadReq.Header.Set("Authorization", "Bearer "+userToken)
+
+	uploadResp := httptest.NewRecorder()
+	app.ServeHTTP(uploadResp, uploadReq)
+
+	if uploadResp.Code != http.StatusCreated {
+		t.Fatalf("Failed to upload test file: %d - %s", uploadResp.Code, uploadResp.Body.String())
+	}
+
+	var uploadResponse map[string]interface{}
+	if err := json.Unmarshal(uploadResp.Body.Bytes(), &uploadResponse); err != nil {
+		t.Fatalf("Failed to parse upload response: %v", err)
+	}
+
+	fileData := uploadResponse["file"].(map[string]interface{})
+	validFileID := fileData["id"].(string)
+
+	tests := []struct {
+		name           string
+		fileID         string
+		authHeader     string
+		expectedStatus int
+		checkResponse  func(t *testing.T, body []byte)
+	}{
+		{
+			name:           "Valid file ID with auth",
+			fileID:         validFileID,
+			authHeader:     "Bearer " + userToken,
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, body []byte) {
+				var response map[string]interface{}
+				err := json.Unmarshal(body, &response)
+				if err != nil {
+					t.Errorf("Failed to parse JSON response: %v", err)
+					return
+				}
+
+				// Should return file metadata: id, filename, size, mime_type, upload_date, is_public
+				expectedFields := []string{"id", "original_filename", "size_bytes", "mime_type", "created_at", "is_public"}
+				for _, field := range expectedFields {
+					if _, exists := response[field]; !exists {
+						t.Errorf("Response should contain %s field", field)
+					}
+				}
+			},
+		},
+		{
+			name:           "File not found",
+			fileID:         uuid.New().String(), // Valid UUID but non-existent
+			authHeader:     "Bearer " + userToken,
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:           "Invalid file ID format",
+			fileID:         "not-a-valid-uuid",
+			authHeader:     "Bearer " + userToken,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "Unauthorized access",
+			fileID:         validFileID,
+			authHeader:     "",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "Access to file owned by different user",
+			fileID:         validFileID,
+			authHeader:     "Bearer " + createTestUserAndGetToken(t, app, "otheruser@example.com", "pass123"),
+			expectedStatus: http.StatusForbidden,
+		},ptest"
+	"strings"
+	"testing"
+
+	"github.com/google/uuid"
+)
+
+// TestFilesDetail tests GET /api/v1/files/{id}
+func TestFilesDetail(t *testing.T) {
+	app := TestApp(t)
+
+	// Create a user and get token
+	userToken := createTestUserAndGetToken(t, app, "filedetail@example.com", "testpass123")
+	
+	// Upload a test file to get a valid file ID
+	fileContent := strings.NewReader("test file content for detail test")
+	body := &bytes.Buffer{}
+	writer := createMultipartWriter(body, "test-detail.txt", fileContent)
+	writer.Close()
+
+	uploadReq := httptest.NewRequest("POST", "/api/v1/files", body)
+	uploadReq.Header.Set("Content-Type", writer.FormDataContentType())
+	uploadReq.Header.Set("Authorization", "Bearer "+userToken)
+
+	uploadResp := httptest.NewRecorder()
+	app.ServeHTTP(uploadResp, uploadReq)
+
+	if uploadResp.Code != http.StatusCreated {
+		t.Fatalf("Failed to upload test file: %d - %s", uploadResp.Code, uploadResp.Body.String())
+	}
+
+	var uploadResponse map[string]interface{}
+	if err := json.Unmarshal(uploadResp.Body.Bytes(), &uploadResponse); err != nil {
+		t.Fatalf("Failed to parse upload response: %v", err)
+	}
+
+	fileData := uploadResponse["file"].(map[string]interface{})
+	validFileID := fileData["id"].(string)
+
+	tests := []struct {
+		name           string
+		fileID         string
+		authHeader     string
+		expectedStatus int
+		checkResponse  func(t *testing.T, body []byte)
+	}{
+		{
+			name:           "Valid file ID with auth",
+			fileID:         validFileID,
+			authHeader:     "Bearer " + userToken,
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, body []byte) {
+				var response map[string]interface{}
+				err := json.Unmarshal(body, &response)
+				if err != nil {
+					t.Errorf("Failed to parse JSON response: %v", err)
+					return
+				}
+
+				// Should return file metadata: id, filename, size, mime_type, upload_date, is_public
+				expectedFields := []string{"id", "original_filename", "size_bytes", "mime_type", "created_at", "is_public"}
+				for _, field := range expectedFields {
+					if _, exists := response[field]; !exists {
+						t.Errorf("Response should contain %s field", field)
+					}
+				}
+			},
+		},
+		{
+			name:           "File not found",
+			fileID:         uuid.New().String(), // Valid UUID but non-existent
+			authHeader:     "Bearer " + userToken,
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:           "Invalid file ID format",
+			fileID:         "invalid-id-format",
+			authHeader:     "Bearer valid-jwt-token",
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "Unauthorized access",
+			fileID:         "valid-file-id",
+			authHeader:     "",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "Access to file owned by different user",
+			fileID:         "other-user-file-id",
+			authHeader:     "Bearer valid-jwt-token",
+			expectedStatus: http.StatusForbidden,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", fmt.Sprintf("/api/v1/files/%s", tt.fileID), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+			}
+
+			rr := httptest.NewRecorder()
+			app.ServeHTTP(rr, req)
+
+			// Check status code
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d. Response: %s", 
+					tt.expectedStatus, rr.Code, rr.Body.String())
+				return
+			}
+
+			// Check response structure
+			if tt.checkResponse != nil {
+				tt.checkResponse(t, rr.Body.Bytes())
+			}
+
+			// For error cases, check standardized error envelope
+			if tt.expectedStatus >= 400 {
+				var response map[string]interface{}
+				err := json.Unmarshal(rr.Body.Bytes(), &response)
+				if err == nil {
+					if errorData, exists := response["error"]; exists {
+						if errorMap, ok := errorData.(map[string]interface{}); ok {
+							if _, exists := errorMap["code"]; !exists {
+								t.Error("Error should contain code field")
+							}
+							if _, exists := errorMap["message"]; !exists {
+								t.Error("Error should contain message field")
+							}
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestFilesDownload tests GET /api/v1/files/{id}/download
+func TestFilesDownload(t *testing.T) {
+	app := TestApp(t)
+
+	tests := []struct {
+		name           string
+		fileID         string
+		authHeader     string
+		expectedStatus int
+		checkResponse  func(t *testing.T, rr *httptest.ResponseRecorder)
+	}{
+		{
+			name:           "Valid file download with auth",
+			fileID:         "valid-file-id",
+			authHeader:     "Bearer valid-jwt-token",
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				// Should have proper download headers
+				contentDisposition := rr.Header().Get("Content-Disposition")
+				if contentDisposition == "" {
+					t.Error("Expected Content-Disposition header for file download")
+				}
+
+				contentType := rr.Header().Get("Content-Type")
+				if contentType == "" {
+					t.Error("Expected Content-Type header for file download")
+				}
+			},
+		},
+		{
+			name:           "File not found",
+			fileID:         "non-existent-file-id",
+			authHeader:     "Bearer valid-jwt-token",
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:           "Unauthorized access",
+			fileID:         "valid-file-id",
+			authHeader:     "",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "Access to file owned by different user",
+			fileID:         "other-user-file-id",
+			authHeader:     "Bearer valid-jwt-token",
+			expectedStatus: http.StatusForbidden,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", fmt.Sprintf("/api/v1/files/%s/download", tt.fileID), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+			}
+
+			rr := httptest.NewRecorder()
+			app.ServeHTTP(rr, req)
+
+			// Check status code
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d. Response: %s", 
+					tt.expectedStatus, rr.Code, rr.Body.String())
+				return
+			}
+
+			// Check response
+			if tt.checkResponse != nil {
+				tt.checkResponse(t, rr)
+			}
+
+			// For error cases, check standardized error envelope
+			if tt.expectedStatus >= 400 {
+				var response map[string]interface{}
+				err := json.Unmarshal(rr.Body.Bytes(), &response)
+				if err == nil {
+					if errorData, exists := response["error"]; exists {
+						if errorMap, ok := errorData.(map[string]interface{}); ok {
+							if _, exists := errorMap["code"]; !exists {
+								t.Error("Error should contain code field")
+							}
+							if _, exists := errorMap["message"]; !exists {
+								t.Error("Error should contain message field")
+							}
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestFilesPublic tests POST /api/v1/files/{id}/public (toggle public sharing)
+func TestFilesPublic(t *testing.T) {
+	app := TestApp(t)
+
+	tests := []struct {
+		name           string
+		fileID         string
+		authHeader     string
+		requestBody    string
+		expectedStatus int
+		checkResponse  func(t *testing.T, body []byte)
+	}{
+		{
+			name:           "Make file public",
+			fileID:         "valid-file-id",
+			authHeader:     "Bearer valid-jwt-token",
+			requestBody:    `{"is_public": true}`,
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, body []byte) {
+				var response map[string]interface{}
+				err := json.Unmarshal(body, &response)
+				if err != nil {
+					t.Errorf("Failed to parse JSON response: %v", err)
+					return
+				}
+
+				// Should include public_token when making public
+				if _, exists := response["is_public"]; !exists {
+					t.Error("Response should contain is_public field")
+				}
+				if _, exists := response["public_token"]; !exists {
+					t.Error("Response should contain public_token field when making public")
+				}
+			},
+		},
+		{
+			name:           "Make file private",
+			fileID:         "valid-file-id",
+			authHeader:     "Bearer valid-jwt-token",
+			requestBody:    `{"is_public": false}`,
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, body []byte) {
+				var response map[string]interface{}
+				err := json.Unmarshal(body, &response)
+				if err != nil {
+					t.Errorf("Failed to parse JSON response: %v", err)
+					return
+				}
+
+				// Should not include public_token when making private
+				if _, exists := response["is_public"]; !exists {
+					t.Error("Response should contain is_public field")
+				}
+				if _, exists := response["public_token"]; exists {
+					t.Error("Response should not contain public_token field when making private")
+				}
+			},
+		},
+		{
+			name:           "Invalid JSON body",
+			fileID:         "valid-file-id",
+			authHeader:     "Bearer valid-jwt-token",
+			requestBody:    `{"is_public": "invalid"}`,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "File not found",
+			fileID:         "non-existent-file-id",
+			authHeader:     "Bearer valid-jwt-token",
+			requestBody:    `{"is_public": true}`,
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:           "Unauthorized access",
+			fileID:         "valid-file-id",
+			authHeader:     "",
+			requestBody:    `{"is_public": true}`,
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "Access to file owned by different user",
+			fileID:         "other-user-file-id",
+			authHeader:     "Bearer valid-jwt-token",
+			requestBody:    `{"is_public": true}`,
+			expectedStatus: http.StatusForbidden,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest("POST", fmt.Sprintf("/api/v1/files/%s/public", tt.fileID), 
+				strings.NewReader(tt.requestBody))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			req.Header.Set("Content-Type", "application/json")
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+			}
+
+			rr := httptest.NewRecorder()
+			app.ServeHTTP(rr, req)
+
+			// Check status code
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d. Response: %s", 
+					tt.expectedStatus, rr.Code, rr.Body.String())
+				return
+			}
+
+			// Check response structure
+			if tt.checkResponse != nil {
+				tt.checkResponse(t, rr.Body.Bytes())
+			}
+
+			// For error cases, check standardized error envelope
+			if tt.expectedStatus >= 400 {
+				var response map[string]interface{}
+				err := json.Unmarshal(rr.Body.Bytes(), &response)
+				if err == nil {
+					if errorData, exists := response["error"]; exists {
+						if errorMap, ok := errorData.(map[string]interface{}); ok {
+							if _, exists := errorMap["code"]; !exists {
+								t.Error("Error should contain code field")
+							}
+							if _, exists := errorMap["message"]; !exists {
+								t.Error("Error should contain message field")
+							}
+						}
+					}
+				}
+			}
+		})
+	}
+}

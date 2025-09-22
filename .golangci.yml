@@ -1,0 +1,49 @@
+linters-settings:
+  govet:
+    check-shadowing: true
+  goimports:
+    local-prefixes: securevault-backend
+  misspell:
+    locale: US
+  gofmt:
+    simplify: true
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+linters:
+  enable:
+    - gofmt
+    - goimports
+    - govet
+    - misspell
+    - ineffassign
+    - goconst
+    - gosec
+    - errcheck
+    - staticcheck
+    - unused
+    - typecheck
+
+  disable:
+    - structcheck # deprecated
+    - varcheck # deprecated
+    - deadcode # deprecated
+    - ifshort # deprecated
+
+run:
+  timeout: 5m
+  tests: true
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gosec
+        - goconst
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
