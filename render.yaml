@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: securevault-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    buildCommand: ""
+    startCommand: ""
+    healthCheckPath: /health
+    autoDeploy: true
