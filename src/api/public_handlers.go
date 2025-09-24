@@ -78,12 +78,41 @@ type PublicFileInfo struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 }
 
-// Helper function to generate download URL
-func (h *PublicHandlers) generateDownloadURL(r *http.Request, fileID uuid.UUID) string {
+// Helper function to determine the scheme from the request
+func (h *PublicHandlers) getRequestScheme(r *http.Request) string {
 	scheme := "http"
+	
+	// Check if request came through HTTPS
+	// 1. Direct TLS connection
 	if r.TLS != nil {
 		scheme = "https"
 	}
+	
+	// 2. Behind reverse proxy (common in cloud deployments)
+	if r.Header.Get("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	
+	// 3. Alternative proxy headers
+	if r.Header.Get("X-Forwarded-Scheme") == "https" {
+		scheme = "https"
+	}
+	
+	// 4. Cloudflare and similar CDNs
+	if r.Header.Get("CF-Visitor") != "" {
+		// Parse CF-Visitor header which contains {"scheme":"https"}
+		if r.Header.Get("CF-Visitor") == `{"scheme":"https"}` {
+			scheme = "https"
+		}
+	}
+	
+	return scheme
+}
+
+// Helper function to generate download URL
+// Helper function to generate download URL
+func (h *PublicHandlers) generateDownloadURL(r *http.Request, fileID uuid.UUID) string {
+	scheme := h.getRequestScheme(r)
 	return fmt.Sprintf("%s://%s/api/v1/public/files/%s/download", scheme, r.Host, fileID.String())
 }
 
@@ -206,10 +235,7 @@ func (h *PublicHandlers) HandlePublicFileByShareToken(w http.ResponseWriter, r *
 
 // Helper function to generate download URL using token
 func (h *PublicHandlers) generateTokenDownloadURL(r *http.Request, token string) string {
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
+	scheme := h.getRequestScheme(r)
 	return fmt.Sprintf("%s://%s/api/v1/public/files/share/%s/download", scheme, r.Host, token)
 }
 
