@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"securevault-backend/src/services"
@@ -78,42 +79,106 @@ type PublicFileInfo struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 }
 
-// Helper function to determine the scheme from the request
-func (h *PublicHandlers) getRequestScheme(r *http.Request) string {
+// Helper function to generate download URL
+func (h *PublicHandlers) generateDownloadURL(r *http.Request, fileID uuid.UUID) string {
 	scheme := "http"
-	
-	// Check if request came through HTTPS
-	// 1. Direct TLS connection
 	if r.TLS != nil {
 		scheme = "https"
 	}
-	
-	// 2. Behind reverse proxy (common in cloud deployments)
-	if r.Header.Get("X-Forwarded-Proto") == "https" {
-		scheme = "https"
-	}
-	
-	// 3. Alternative proxy headers
-	if r.Header.Get("X-Forwarded-Scheme") == "https" {
-		scheme = "https"
-	}
-	
-	// 4. Cloudflare and similar CDNs
-	if r.Header.Get("CF-Visitor") != "" {
-		// Parse CF-Visitor header which contains {"scheme":"https"}
-		if r.Header.Get("CF-Visitor") == `{"scheme":"https"}` {
-			scheme = "https"
-		}
-	}
-	
-	return scheme
+	return fmt.Sprintf("%s://%s/api/v1/public/files/%s/download", scheme, r.Host, fileID.String())
 }
 
-// Helper function to generate download URL
-// Helper function to generate download URL
-func (h *PublicHandlers) generateDownloadURL(r *http.Request, fileID uuid.UUID) string {
-	scheme := h.getRequestScheme(r)
-	return fmt.Sprintf("%s://%s/api/v1/public/files/%s/download", scheme, r.Host, fileID.String())
+// PublicFilesListResponse represents a paginated list of public files
+type PublicFilesListResponse struct {
+	Files      []PublicFileInfo `json:"files"`
+	Pagination PaginationMeta   `json:"pagination"`
+}
+
+// PaginationMeta represents pagination metadata
+type PaginationMeta struct {
+	Page       int `json:"page"`
+	PageSize   int `json:"page_size"`
+	Total      int `json:"total"`
+	TotalPages int `json:"total_pages"`
+}
+
+// HandlePublicFilesByOwner handles GET /public/files/owner/{owner_id} - get all public files by owner ID
+// @Summary Get all public files by owner ID
+// @Description Get paginated list of all public files for a specific owner (no authentication required)
+// @Tags Public
+// @Accept json
+// @Produce json
+// @Param owner_id path string true "Owner ID (UUID)"
+// @Param page query int false "Page number" default(1)
+// @Param page_size query int false "Items per page (max 100)" default(20)
+// @Success 200 {object} PublicFilesListResponse "List of public files"
+// @Failure 400 {object} ErrorResponse "Invalid owner ID"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /public/files/owner/{owner_id} [get]
+func (h *PublicHandlers) HandlePublicFilesByOwner(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	ownerIDStr := vars["owner_id"]
+
+	// Parse owner ID
+	ownerID, err := uuid.Parse(ownerIDStr)
+	if err != nil {
+		h.writeErrorResponse(w, "INVALID_OWNER_ID", "Invalid owner ID format", http.StatusBadRequest)
+		return
+	}
+
+	// Parse pagination params
+	page := 1
+	pageSize := 20
+
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if pageSizeStr := r.URL.Query().Get("page_size"); pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
+		}
+	}
+
+	// Get public files by owner
+	files, total, err := h.fileService.GetPublicFilesByOwnerID(ownerID, page, pageSize)
+	if err != nil {
+		h.writeErrorResponse(w, "INTERNAL_ERROR", "Failed to retrieve public files", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert to response format
+	publicFiles := make([]PublicFileInfo, len(files))
+	for i, file := range files {
+		publicFiles[i] = PublicFileInfo{
+			ID:               file.ID,
+			OriginalFilename: file.OriginalFilename,
+			MimeType:         file.MimeType,
+			SizeBytes:        file.SizeBytes,
+			Tags:             file.Tags,
+			DownloadURL:      h.generateDownloadURL(r, file.ID),
+			CreatedAt:        file.CreatedAt,
+			UpdatedAt:        file.UpdatedAt,
+		}
+	}
+
+	totalPages := (total + pageSize - 1) / pageSize
+
+	response := PublicFilesListResponse{
+		Files: publicFiles,
+		Pagination: PaginationMeta{
+			Page:       page,
+			PageSize:   pageSize,
+			Total:      total,
+			TotalPages: totalPages,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
 
 // HandlePublicFileByID handles GET /public/files/{id} - get public file details by ID
@@ -235,7 +300,10 @@ func (h *PublicHandlers) HandlePublicFileByShareToken(w http.ResponseWriter, r *
 
 // Helper function to generate download URL using token
 func (h *PublicHandlers) generateTokenDownloadURL(r *http.Request, token string) string {
-	scheme := h.getRequestScheme(r)
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
 	return fmt.Sprintf("%s://%s/api/v1/public/files/share/%s/download", scheme, r.Host, token)
 }
 

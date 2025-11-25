@@ -275,6 +275,7 @@ func (a *App) setupRoutes(authService *services.AuthService, fileService *servic
 	api.HandleFunc("/stats/me", a.handlers.Stats.HandleStatsMe).Methods("GET", "OPTIONS")
 	
 	// Public routes (no authentication required)
+	api.HandleFunc("/public/files/owner/{owner_id}", a.handlers.Public.HandlePublicFilesByOwner).Methods("GET", "OPTIONS")
 	api.HandleFunc("/public/files/{id}", a.handlers.Public.HandlePublicFileByID).Methods("GET", "OPTIONS")
 	api.HandleFunc("/public/files/share/{token}", a.handlers.Public.HandlePublicFileByShareToken).Methods("GET", "OPTIONS")
 	api.HandleFunc("/public/folders/share/{token}", a.handlers.Public.HandlePublicFolderByShareToken).Methods("GET", "OPTIONS")

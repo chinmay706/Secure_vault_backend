@@ -98,25 +98,25 @@ const docTemplate = `{
                     "200": {
                         "description": "List of all files with admin details",
                         "schema": {
-                            "$ref": "#/definitions/api.AdminFilesResponse"
+                            "$ref": "#/definitions/src_api.AdminFilesResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Admin privileges required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -156,31 +156,31 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid file ID format",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Admin privileges required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "File not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -211,7 +211,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.PromoteUserRequest"
+                            "$ref": "#/definitions/src_api.PromoteUserRequest"
                         }
                     }
                 ],
@@ -219,37 +219,37 @@ const docTemplate = `{
                     "200": {
                         "description": "User successfully promoted to admin",
                         "schema": {
-                            "$ref": "#/definitions/api.UserResponseData"
+                            "$ref": "#/definitions/src_api.UserResponseData"
                         }
                     },
                     "400": {
                         "description": "Invalid request data",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - admin access required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -275,7 +275,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.SignupRequest"
+                            "$ref": "#/definitions/src_api.SignupRequest"
                         }
                     }
                 ],
@@ -283,25 +283,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Admin user successfully registered",
                         "schema": {
-                            "$ref": "#/definitions/api.AuthResponse"
+                            "$ref": "#/definitions/src_api.AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request data",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Email already exists",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -349,25 +349,25 @@ const docTemplate = `{
                     "200": {
                         "description": "System-wide statistics",
                         "schema": {
-                            "$ref": "#/definitions/api.AdminStatsResponse"
+                            "$ref": "#/definitions/src_api.AdminStatsResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Admin privileges required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -393,7 +393,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.LoginRequest"
+                            "$ref": "#/definitions/src_api.LoginRequest"
                         }
                     }
                 ],
@@ -401,25 +401,25 @@ const docTemplate = `{
                     "200": {
                         "description": "User successfully authenticated",
                         "schema": {
-                            "$ref": "#/definitions/api.AuthResponse"
+                            "$ref": "#/definitions/src_api.AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request data",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid credentials",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -445,7 +445,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.SignupRequest"
+                            "$ref": "#/definitions/src_api.SignupRequest"
                         }
                     }
                 ],
@@ -453,25 +453,25 @@ const docTemplate = `{
                     "201": {
                         "description": "User successfully registered",
                         "schema": {
-                            "$ref": "#/definitions/api.AuthResponse"
+                            "$ref": "#/definitions/src_api.AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request data",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Email already exists",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -533,19 +533,19 @@ const docTemplate = `{
                     "200": {
                         "description": "List of user files",
                         "schema": {
-                            "$ref": "#/definitions/api.FileListResponse"
+                            "$ref": "#/definitions/src_api.FileListResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -586,31 +586,31 @@ const docTemplate = `{
                     "201": {
                         "description": "File successfully uploaded",
                         "schema": {
-                            "$ref": "#/definitions/api.UploadResponse"
+                            "$ref": "#/definitions/src_api.UploadResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request or no file provided",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "413": {
                         "description": "File too large",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Upload failed",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -647,37 +647,37 @@ const docTemplate = `{
                     "200": {
                         "description": "File details",
                         "schema": {
-                            "$ref": "#/definitions/api.FileResponse"
+                            "$ref": "#/definitions/src_api.FileResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid file ID format",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Access denied",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "File not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -715,31 +715,31 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid file ID format",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Access denied",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "File not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -779,31 +779,31 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid file ID format",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Access denied",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "File not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Download failed",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -841,7 +841,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.MoveFileRequest"
+                            "$ref": "#/definitions/src_api.MoveFileRequest"
                         }
                     }
                 ],
@@ -849,25 +849,25 @@ const docTemplate = `{
                     "200": {
                         "description": "File moved successfully",
                         "schema": {
-                            "$ref": "#/definitions/api.FileResponse"
+                            "$ref": "#/definitions/src_api.FileResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "File not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -906,7 +906,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.TogglePublicRequest"
+                            "$ref": "#/definitions/src_api.TogglePublicRequest"
                         }
                     }
                 ],
@@ -914,37 +914,37 @@ const docTemplate = `{
                     "200": {
                         "description": "Updated file with share link info (if public)",
                         "schema": {
-                            "$ref": "#/definitions/api.TogglePublicResponse"
+                            "$ref": "#/definitions/src_api.TogglePublicResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid file ID or JSON body",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Access denied",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "File not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -994,25 +994,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Folder contents retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/api.FolderChildrenResponse"
+                            "$ref": "#/definitions/src_api.FolderChildrenResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request parameters",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Parent folder not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1041,7 +1041,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.CreateFolderRequest"
+                            "$ref": "#/definitions/src_api.CreateFolderRequest"
                         }
                     }
                 ],
@@ -1049,25 +1049,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Folder successfully created",
                         "schema": {
-                            "$ref": "#/definitions/api.FolderResponse"
+                            "$ref": "#/definitions/src_api.FolderResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request data",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Folder already exists",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1104,25 +1104,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Folder details retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/api.FolderDetailsResponse"
+                            "$ref": "#/definitions/src_api.FolderDetailsResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid folder ID",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Folder not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1160,19 +1160,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid folder ID",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Folder not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1208,7 +1208,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.UpdateFolderRequest"
+                            "$ref": "#/definitions/src_api.UpdateFolderRequest"
                         }
                     }
                 ],
@@ -1216,25 +1216,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Folder updated successfully",
                         "schema": {
-                            "$ref": "#/definitions/api.FolderResponse"
+                            "$ref": "#/definitions/src_api.FolderResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request data",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Folder not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1271,25 +1271,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Share link created successfully with files made public",
                         "schema": {
-                            "$ref": "#/definitions/api.FolderShareLinkResponse"
+                            "$ref": "#/definitions/src_api.FolderShareLinkResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid folder ID",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Folder not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1327,19 +1327,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid folder ID",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Folder or share link not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1376,25 +1376,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Sharelink status retrieved successfully with token if exists",
                         "schema": {
-                            "$ref": "#/definitions/api.FolderShareLinkStatusResponse"
+                            "$ref": "#/definitions/src_api.FolderShareLinkStatusResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid folder ID",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Folder not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1466,31 +1466,31 @@ const docTemplate = `{
                     "200": {
                         "description": "Folder contents retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/api.FolderChildrenResponse"
+                            "$ref": "#/definitions/src_api.FolderChildrenResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid token",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Link revoked",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Link not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "410": {
                         "description": "Link expired",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1534,31 +1534,31 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid token",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Link revoked",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Link not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "410": {
                         "description": "Link expired",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1600,31 +1600,89 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid token",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Link revoked",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Link not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "410": {
                         "description": "Link expired",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/public/files/owner/{owner_id}": {
+            "get": {
+                "description": "Get paginated list of all public files for a specific owner (no authentication required)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Get all public files by owner ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Owner ID (UUID)",
+                        "name": "owner_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page (max 100)",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of public files",
+                        "schema": {
+                            "$ref": "#/definitions/src_api.PublicFilesListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid owner ID",
+                        "schema": {
+                            "$ref": "#/definitions/src_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1656,37 +1714,37 @@ const docTemplate = `{
                     "200": {
                         "description": "File details",
                         "schema": {
-                            "$ref": "#/definitions/api.PublicFileResponse"
+                            "$ref": "#/definitions/src_api.PublicFileResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid token",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "File is private",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "File not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "410": {
                         "description": "Share link expired",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1721,25 +1779,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid token format",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Share link expired or inactive",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "File not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Download failed",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1771,31 +1829,31 @@ const docTemplate = `{
                     "200": {
                         "description": "File details",
                         "schema": {
-                            "$ref": "#/definitions/api.PublicFileResponse"
+                            "$ref": "#/definitions/src_api.PublicFileResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid file ID",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "File is private",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "File not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1830,25 +1888,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid file ID format",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "File not public",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "File not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Download failed",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1880,31 +1938,31 @@ const docTemplate = `{
                     "200": {
                         "description": "Folder tree with subfolders and files",
                         "schema": {
-                            "$ref": "#/definitions/api.PublicFolderTreeResponse"
+                            "$ref": "#/definitions/src_api.PublicFolderTreeResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid token",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Folder not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "410": {
                         "description": "Share link expired",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -1952,25 +2010,25 @@ const docTemplate = `{
                     "200": {
                         "description": "User statistics",
                         "schema": {
-                            "$ref": "#/definitions/api.StatsResponse"
+                            "$ref": "#/definitions/src_api.StatsResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid query parameters",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication required",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -2010,31 +2068,31 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid user ID",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - can only delete own account",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -2072,7 +2130,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.UpdatePasswordRequest"
+                            "$ref": "#/definitions/src_api.UpdatePasswordRequest"
                         }
                     }
                 ],
@@ -2089,31 +2147,31 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request data",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden - can only update own password",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/src_api.ErrorResponse"
                         }
                     }
                 }
@@ -2121,7 +2179,18 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api.ActiveUserEntry": {
+        "securevault-backend_src_models.UserRole": {
+            "type": "string",
+            "enum": [
+                "user",
+                "admin"
+            ],
+            "x-enum-varnames": [
+                "UserRoleUser",
+                "UserRoleAdmin"
+            ]
+        },
+        "src_api.ActiveUserEntry": {
             "type": "object",
             "properties": {
                 "file_count": {
@@ -2141,7 +2210,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.AdminFileEntry": {
+        "src_api.AdminFileEntry": {
             "type": "object",
             "properties": {
                 "download_count": {
@@ -2173,21 +2242,21 @@ const docTemplate = `{
                 }
             }
         },
-        "api.AdminFilesResponse": {
+        "src_api.AdminFilesResponse": {
             "type": "object",
             "properties": {
                 "files": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.AdminFileEntry"
+                        "$ref": "#/definitions/src_api.AdminFileEntry"
                     }
                 },
                 "pagination": {
-                    "$ref": "#/definitions/api.PaginationInfo"
+                    "$ref": "#/definitions/src_api.PaginationInfo"
                 }
             }
         },
-        "api.AdminStatsResponse": {
+        "src_api.AdminStatsResponse": {
             "type": "object",
             "properties": {
                 "files_by_type": {
@@ -2199,7 +2268,7 @@ const docTemplate = `{
                 "most_active_users": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.ActiveUserEntry"
+                        "$ref": "#/definitions/src_api.ActiveUserEntry"
                     }
                 },
                 "quota_utilization_percent": {
@@ -2208,7 +2277,7 @@ const docTemplate = `{
                 "storage_by_user": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.UserStorageEntry"
+                        "$ref": "#/definitions/src_api.UserStorageEntry"
                     }
                 },
                 "total_files": {
@@ -2220,29 +2289,32 @@ const docTemplate = `{
                 "total_size_bytes": {
                     "type": "integer"
                 },
+                "total_user_registrations": {
+                    "type": "integer"
+                },
                 "total_users": {
                     "type": "integer"
                 },
                 "users_by_registration_date": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.RegistrationEntry"
+                        "$ref": "#/definitions/src_api.RegistrationEntry"
                     }
                 }
             }
         },
-        "api.AuthResponse": {
+        "src_api.AuthResponse": {
             "type": "object",
             "properties": {
                 "token": {
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/api.UserResponseData"
+                    "$ref": "#/definitions/src_api.UserResponseData"
                 }
             }
         },
-        "api.CreateFolderRequest": {
+        "src_api.CreateFolderRequest": {
             "type": "object",
             "properties": {
                 "name": {
@@ -2253,7 +2325,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.ErrorDetail": {
+        "src_api.ErrorDetail": {
             "type": "object",
             "properties": {
                 "code": {
@@ -2265,21 +2337,21 @@ const docTemplate = `{
                 }
             }
         },
-        "api.ErrorResponse": {
+        "src_api.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {
-                    "$ref": "#/definitions/api.ErrorDetail"
+                    "$ref": "#/definitions/src_api.ErrorDetail"
                 }
             }
         },
-        "api.FileListResponse": {
+        "src_api.FileListResponse": {
             "type": "object",
             "properties": {
                 "files": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.FileResponse"
+                        "$ref": "#/definitions/src_api.FileResponse"
                     }
                 },
                 "page": {
@@ -2293,7 +2365,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.FileResponse": {
+        "src_api.FileResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2318,7 +2390,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "share_link": {
-                    "$ref": "#/definitions/api.ShareLinkResponse"
+                    "$ref": "#/definitions/src_api.ShareLinkResponse"
                 },
                 "size_bytes": {
                     "type": "integer"
@@ -2334,41 +2406,41 @@ const docTemplate = `{
                 }
             }
         },
-        "api.FolderChildrenResponse": {
+        "src_api.FolderChildrenResponse": {
             "type": "object",
             "properties": {
                 "files": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.FolderFileResponse"
+                        "$ref": "#/definitions/src_api.FolderFileResponse"
                     }
                 },
                 "files_pagination": {
-                    "$ref": "#/definitions/api.FolderPaginationInfo"
+                    "$ref": "#/definitions/src_api.FolderPaginationInfo"
                 },
                 "folders": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.FolderResponse"
+                        "$ref": "#/definitions/src_api.FolderResponse"
                     }
                 }
             }
         },
-        "api.FolderDetailsResponse": {
+        "src_api.FolderDetailsResponse": {
             "type": "object",
             "properties": {
                 "breadcrumbs": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.FolderResponse"
+                        "$ref": "#/definitions/src_api.FolderResponse"
                     }
                 },
                 "folder": {
-                    "$ref": "#/definitions/api.FolderResponse"
+                    "$ref": "#/definitions/src_api.FolderResponse"
                 }
             }
         },
-        "api.FolderFileResponse": {
+        "src_api.FolderFileResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2406,7 +2478,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.FolderPaginationInfo": {
+        "src_api.FolderPaginationInfo": {
             "type": "object",
             "properties": {
                 "has_more": {
@@ -2439,7 +2511,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.FolderResponse": {
+        "src_api.FolderResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2459,7 +2531,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.FolderShareLinkResponse": {
+        "src_api.FolderShareLinkResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2479,7 +2551,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.FolderShareLinkStatusResponse": {
+        "src_api.FolderShareLinkStatusResponse": {
             "type": "object",
             "properties": {
                 "has_share_link": {
@@ -2490,7 +2562,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.LoginRequest": {
+        "src_api.LoginRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -2501,7 +2573,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.MoveFileRequest": {
+        "src_api.MoveFileRequest": {
             "type": "object",
             "properties": {
                 "folder_id": {
@@ -2509,7 +2581,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.PaginationInfo": {
+        "src_api.PaginationInfo": {
             "type": "object",
             "properties": {
                 "page": {
@@ -2526,7 +2598,24 @@ const docTemplate = `{
                 }
             }
         },
-        "api.PromoteUserRequest": {
+        "src_api.PaginationMeta": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "src_api.PromoteUserRequest": {
             "type": "object",
             "properties": {
                 "user_id": {
@@ -2534,7 +2623,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.PublicFileInfo": {
+        "src_api.PublicFileInfo": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2566,7 +2655,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.PublicFileResponse": {
+        "src_api.PublicFileResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2601,7 +2690,21 @@ const docTemplate = `{
                 }
             }
         },
-        "api.PublicFolderInfo": {
+        "src_api.PublicFilesListResponse": {
+            "type": "object",
+            "properties": {
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/src_api.PublicFileInfo"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/src_api.PaginationMeta"
+                }
+            }
+        },
+        "src_api.PublicFolderInfo": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2621,27 +2724,27 @@ const docTemplate = `{
                 }
             }
         },
-        "api.PublicFolderTreeResponse": {
+        "src_api.PublicFolderTreeResponse": {
             "type": "object",
             "properties": {
                 "files": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.PublicFileInfo"
+                        "$ref": "#/definitions/src_api.PublicFileInfo"
                     }
                 },
                 "folder": {
-                    "$ref": "#/definitions/api.PublicFolderInfo"
+                    "$ref": "#/definitions/src_api.PublicFolderInfo"
                 },
                 "subfolders": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.PublicFolderTreeResponse"
+                        "$ref": "#/definitions/src_api.PublicFolderTreeResponse"
                     }
                 }
             }
         },
-        "api.RegistrationEntry": {
+        "src_api.RegistrationEntry": {
             "type": "object",
             "properties": {
                 "count": {
@@ -2652,7 +2755,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.ShareLinkResponse": {
+        "src_api.ShareLinkResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2669,7 +2772,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.SignupRequest": {
+        "src_api.SignupRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -2683,7 +2786,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.StatsResponse": {
+        "src_api.StatsResponse": {
             "type": "object",
             "properties": {
                 "files_by_type": {
@@ -2710,12 +2813,12 @@ const docTemplate = `{
                 "upload_history": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api.UploadHistoryEntry"
+                        "$ref": "#/definitions/src_api.UploadHistoryEntry"
                     }
                 }
             }
         },
-        "api.TogglePublicRequest": {
+        "src_api.TogglePublicRequest": {
             "type": "object",
             "properties": {
                 "is_public": {
@@ -2724,15 +2827,15 @@ const docTemplate = `{
                 }
             }
         },
-        "api.TogglePublicResponse": {
+        "src_api.TogglePublicResponse": {
             "type": "object",
             "properties": {
                 "file": {
-                    "$ref": "#/definitions/api.FileResponse"
+                    "$ref": "#/definitions/src_api.FileResponse"
                 }
             }
         },
-        "api.UpdateFolderRequest": {
+        "src_api.UpdateFolderRequest": {
             "type": "object",
             "properties": {
                 "name": {
@@ -2743,7 +2846,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.UpdatePasswordRequest": {
+        "src_api.UpdatePasswordRequest": {
             "type": "object",
             "properties": {
                 "current_password": {
@@ -2754,7 +2857,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.UploadHistoryEntry": {
+        "src_api.UploadHistoryEntry": {
             "type": "object",
             "properties": {
                 "count": {
@@ -2768,11 +2871,11 @@ const docTemplate = `{
                 }
             }
         },
-        "api.UploadResponse": {
+        "src_api.UploadResponse": {
             "type": "object",
             "properties": {
                 "file": {
-                    "$ref": "#/definitions/api.FileResponse"
+                    "$ref": "#/definitions/src_api.FileResponse"
                 },
                 "hash": {
                     "type": "string"
@@ -2782,7 +2885,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.UserResponseData": {
+        "src_api.UserResponseData": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2801,14 +2904,14 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "role": {
-                    "$ref": "#/definitions/models.UserRole"
+                    "$ref": "#/definitions/securevault-backend_src_models.UserRole"
                 },
                 "storage_quota_bytes": {
                     "type": "integer"
                 }
             }
         },
-        "api.UserStorageEntry": {
+        "src_api.UserStorageEntry": {
             "type": "object",
             "properties": {
                 "file_count": {
@@ -2827,17 +2930,6 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
-        },
-        "models.UserRole": {
-            "type": "string",
-            "enum": [
-                "user",
-                "admin"
-            ],
-            "x-enum-varnames": [
-                "UserRoleUser",
-                "UserRoleAdmin"
-            ]
         }
     },
     "securityDefinitions": {

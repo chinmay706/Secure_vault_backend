@@ -1293,6 +1293,66 @@ func (s *FileService) GetFileByShareToken(token string) (*models.File, error) {
 	return &file, nil
 }
 
+// GetPublicFilesByOwnerID retrieves all public files for a specific owner (no authentication required)
+func (s *FileService) GetPublicFilesByOwnerID(ownerID uuid.UUID, page, pageSize int) ([]*models.File, int, error) {
+	if ownerID == uuid.Nil {
+		return nil, 0, fmt.Errorf("owner ID cannot be nil")
+	}
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	offset := (page - 1) * pageSize
+
+	// Get total count
+	countQuery := `SELECT COUNT(*) FROM files WHERE owner_id = $1 AND is_public = true`
+	var total int
+	err := s.db.QueryRow(countQuery, ownerID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count public files: %w", err)
+	}
+
+	// Get paginated files
+	query := `
+		SELECT id, owner_id, blob_hash, original_filename, mime_type, size_bytes,
+		       is_public, download_count, tags, folder_id, created_at, updated_at
+		FROM files 
+		WHERE owner_id = $1 AND is_public = true
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := s.db.Query(query, ownerID, pageSize, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get public files by owner: %w", err)
+	}
+	defer rows.Close()
+
+	var files []*models.File
+	for rows.Next() {
+		var file models.File
+		err := rows.Scan(
+			&file.ID, &file.OwnerID, &file.BlobHash, &file.OriginalFilename, &file.MimeType,
+			&file.SizeBytes, &file.IsPublic, &file.DownloadCount, pq.Array(&file.Tags), &file.FolderID,
+			&file.CreatedAt, &file.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan file row: %w", err)
+		}
+		files = append(files, &file)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating file rows: %w", err)
+	}
+
+	return files, total, nil
+}
+
 // GetPublicFileByID retrieves a file by ID only if it's public (no authentication required)
 func (s *FileService) GetPublicFileByID(fileID uuid.UUID) (*models.File, error) {
 	if fileID == uuid.Nil {

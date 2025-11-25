@@ -27,6 +27,288 @@ For detailed API documentation, examples, and guides, visit:
 - [👑 Admin Operations](../apidocs/rest/admin.md) - System administration
 - [📄 cURL Examples](../apidocs/rest/examples.md) - Comprehensive command-line examples
 
+---
+
+## 🌐 Public API Endpoints (No Authentication Required)
+
+The following endpoints are publicly accessible without authentication:
+
+### Get Public Files by Owner ID
+
+```http
+GET /api/v1/public/files/owner/{owner_id}
+```
+
+Get a paginated list of all public files for a specific owner.
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | int | 1 | Page number (1-based) |
+| `page_size` | int | 20 | Items per page (max 100) |
+
+**Response:**
+
+```json
+{
+  "files": [
+    {
+      "id": "uuid",
+      "original_filename": "document.pdf",
+      "mime_type": "application/pdf",
+      "size_bytes": 1024,
+      "tags": ["important"],
+      "download_url": "http://host/api/v1/public/files/{id}/download",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "page_size": 20,
+    "total": 100,
+    "total_pages": 5
+  }
+}
+```
+
+### Get Public File by ID
+
+```http
+GET /api/v1/public/files/{id}
+```
+
+Get file details for a public file by its UUID.
+
+**Response:**
+
+```json
+{
+  "id": "uuid",
+  "original_filename": "document.pdf",
+  "mime_type": "application/pdf",
+  "size_bytes": 1024,
+  "tags": ["important"],
+  "download_url": "http://host/api/v1/public/files/{id}/download",
+  "created_at": "2025-01-01T00:00:00Z",
+  "updated_at": "2025-01-01T00:00:00Z",
+  "folder_id": "uuid or null"
+}
+```
+
+### Get Public File by Share Token
+
+```http
+GET /api/v1/public/files/share/{token}
+```
+
+Get file details using a share token (for shared files).
+
+**Error Responses:**
+
+- `404 NOT_FOUND` - Share link not found
+- `410 EXPIRED` - Share link has expired
+- `403 INACTIVE` - Share link has been deactivated
+
+### Get Public Folder Tree by Share Token
+
+```http
+GET /api/v1/public/folders/share/{token}
+```
+
+Get complete folder tree structure with all subfolders and files using a share token.
+
+**Response:**
+
+```json
+{
+  "folder": {
+    "id": "uuid",
+    "name": "Shared Folder",
+    "parent_id": null,
+    "created_at": "2025-01-01T00:00:00Z",
+    "updated_at": "2025-01-01T00:00:00Z"
+  },
+  "files": [
+    {
+      "id": "uuid",
+      "original_filename": "file.txt",
+      "mime_type": "text/plain",
+      "size_bytes": 512,
+      "tags": [],
+      "download_url": "http://host/api/v1/public/files/{id}/download",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "subfolders": []
+}
+```
+
+### Download Public File
+
+```http
+GET /api/v1/public/files/{id}/download
+```
+
+Download file content for public files. Returns the file with appropriate `Content-Type` and `Content-Disposition` headers.
+
+### Download File by Share Token
+
+```http
+GET /api/v1/public/files/share/{token}/download
+```
+
+Download file content using a share token.
+
+---
+
+## 👑 Admin API Endpoints
+
+### Admin Statistics (Updated)
+
+```http
+GET /api/v1/admin/stats
+```
+
+Get comprehensive system-wide statistics including users, files, storage, and analytics.
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `from` | string | Start date for time-based data (YYYY-MM-DD) |
+| `to` | string | End date for time-based data (YYYY-MM-DD) |
+| `group_by` | string | Time grouping: `day`, `week`, `month`, `year` |
+
+**Response:**
+
+```json
+{
+  "total_users": 150,
+  "total_files": 5000,
+  "total_size_bytes": 10737418240,
+  "total_quota_bytes": 15728640000,
+  "quota_utilization_percent": 68.26,
+  "files_by_type": {
+    "application/pdf": 1200,
+    "image/jpeg": 2500,
+    "text/plain": 800
+  },
+  "total_user_registrations": 150,
+  "users_by_registration_date": [
+    { "date": "2025-01-01", "count": 10 },
+    { "date": "2025-01-02", "count": 15 }
+  ],
+  "storage_by_user": [
+    {
+      "user_id": "uuid",
+      "user_email": "user@example.com",
+      "file_count": 50,
+      "total_size_bytes": 104857600,
+      "quota_bytes": 1073741824
+    }
+  ],
+  "most_active_users": [
+    {
+      "user_id": "uuid",
+      "user_email": "user@example.com",
+      "file_count": 100,
+      "last_upload": "2025-01-15T10:30:00Z",
+      "total_downloads": 500
+    }
+  ]
+}
+```
+
+### List All Files (Admin)
+
+```http
+GET /api/v1/admin/files
+```
+
+Get a paginated list of all files in the system with admin-level details.
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `user_id` | uuid | Filter by specific user UUID |
+| `user_email` | string | Filter by user email (partial match) |
+| `uploaded_after` | string | Filter files uploaded after date (YYYY-MM-DD) |
+| `uploaded_before` | string | Filter files uploaded before date (YYYY-MM-DD) |
+| `sort` | string | Sort field: `filename`, `size`, `upload_date`, `user_email` |
+| `order` | string | Sort order: `asc`, `desc` |
+| `page` | int | Page number (default: 1) |
+| `page_size` | int | Items per page, max 100 (default: 20) |
+
+**Response:**
+
+```json
+{
+  "files": [
+    {
+      "id": "uuid",
+      "filename": "document.pdf",
+      "size": 1024,
+      "mime_type": "application/pdf",
+      "upload_date": "2025-01-01T00:00:00Z",
+      "user_email": "user@example.com",
+      "user_id": "uuid",
+      "is_public": true,
+      "download_count": 25
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "page_size": 20,
+    "total": 5000,
+    "total_pages": 250
+  }
+}
+```
+
+### Delete Any File (Admin)
+
+```http
+DELETE /api/v1/admin/files/{id}
+```
+
+Admin can delete any file regardless of ownership (includes S3 cleanup).
+
+**Response:** `204 No Content`
+
+### Admin Signup
+
+```http
+POST /api/v1/admin/signup
+```
+
+Register a new admin user account.
+
+**Request Body:**
+
+```json
+{
+  "email": "admin@example.com",
+  "password": "securePassword123"
+}
+```
+
+### Promote User to Admin
+
+```http
+POST /api/v1/admin/promote
+```
+
+Promote an existing user to admin role (requires admin authentication).
+
+**Request Body:**
+
+```json
+{
+  "user_id": "uuid-of-user-to-promote"
+}
+```
+
 ## 🚀 Quick Start
 
 ### 1. Start the Server

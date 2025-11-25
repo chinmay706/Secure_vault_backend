@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -65,6 +66,7 @@ type AdminStatsResponse struct {
 	TotalQuotaBytes           int64                  `json:"total_quota_bytes"`
 	QuotaUtilizationPercent   float64                `json:"quota_utilization_percent"`
 	FilesByType               map[string]int         `json:"files_by_type"`
+	TotalUserRegistrations    int                    `json:"total_user_registrations"`
 	UsersByRegistrationDate   []RegistrationEntry    `json:"users_by_registration_date"`
 	StorageByUser             []UserStorageEntry     `json:"storage_by_user"`
 	MostActiveUsers           []ActiveUserEntry      `json:"most_active_users"`
@@ -243,6 +245,13 @@ func (h *AdminHandlers) HandleAdminStats(w http.ResponseWriter, r *http.Request)
 		quotaUtilization = float64(systemStats.TotalSizeBytes) / float64(totalQuotaBytes) * 100
 	}
 
+	// Get total user registrations (all-time count)
+	totalRegistrations, err := h.getTotalUserRegistrations()
+	if err != nil {
+		h.writeErrorResponse(w, "INTERNAL_ERROR", "Failed to retrieve total user registrations", http.StatusInternalServerError)
+		return
+	}
+
 	response := AdminStatsResponse{
 		TotalUsers:                systemStats.TotalUsers,
 		TotalFiles:                systemStats.TotalFiles,
@@ -250,6 +259,7 @@ func (h *AdminHandlers) HandleAdminStats(w http.ResponseWriter, r *http.Request)
 		TotalQuotaBytes:           totalQuotaBytes,
 		QuotaUtilizationPercent:   quotaUtilization,
 		FilesByType:               filesByType,
+		TotalUserRegistrations:    totalRegistrations,
 		UsersByRegistrationDate:   usersByRegistration,
 		StorageByUser:             storageByUser,
 		MostActiveUsers:           activeUsers,
@@ -632,17 +642,32 @@ func (h *AdminHandlers) getSystemFilesByType() (map[string]int, error) {
 	return filesByType, nil
 }
 
+// getTotalUserRegistrations retrieves the total count of all user registrations (all-time)
+func (h *AdminHandlers) getTotalUserRegistrations() (int, error) {
+	query := `SELECT COUNT(*) FROM users`
+	var total int
+	err := h.statsService.GetDB().QueryRow(query).Scan(&total)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get total user registrations: %w", err)
+	}
+	return total, nil
+}
+
 // getUserRegistrationHistory retrieves user registration statistics
 func (h *AdminHandlers) getUserRegistrationHistory(params *AdminQueryParams) ([]RegistrationEntry, error) {
-	// Default to last 30 days if no date range specified
-	fromDate := time.Now().AddDate(0, 0, -30)
-	toDate := time.Now()
+	// Default to all-time if no date range specified
+	var fromDate, toDate time.Time
+	hasDateRange := false
 
 	if params.FromDate != nil {
 		fromDate = *params.FromDate
+		hasDateRange = true
 	}
 	if params.ToDate != nil {
 		toDate = *params.ToDate
+		hasDateRange = true
+	} else if hasDateRange {
+		toDate = time.Now()
 	}
 
 	groupBy := "day"
@@ -668,17 +693,32 @@ func (h *AdminHandlers) getUserRegistrationHistory(params *AdminQueryParams) ([]
 		truncFormat = "day"
 	}
 
-	query := fmt.Sprintf(`
-		SELECT 
-			DATE_TRUNC('%s', created_at) as date_group,
-			COUNT(*) as count
-		FROM users 
-		WHERE created_at >= $1 AND created_at <= $2
-		GROUP BY date_group
-		ORDER BY date_group ASC
-	`, truncFormat)
+	var rows *sql.Rows
+	var err error
 
-	rows, err := h.statsService.GetDB().Query(query, fromDate, toDate)
+	if hasDateRange {
+		query := fmt.Sprintf(`
+			SELECT 
+				DATE_TRUNC('%s', created_at) as date_group,
+				COUNT(*) as count
+			FROM users 
+			WHERE created_at >= $1 AND created_at <= $2
+			GROUP BY date_group
+			ORDER BY date_group ASC
+		`, truncFormat)
+		rows, err = h.statsService.GetDB().Query(query, fromDate, toDate)
+	} else {
+		// No date range - return all-time registrations grouped
+		query := fmt.Sprintf(`
+			SELECT 
+				DATE_TRUNC('%s', created_at) as date_group,
+				COUNT(*) as count
+			FROM users 
+			GROUP BY date_group
+			ORDER BY date_group ASC
+		`, truncFormat)
+		rows, err = h.statsService.GetDB().Query(query)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to query user registration history: %w", err)
 	}
