@@ -9,10 +9,10 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "http://localhost:8080/terms/",
+        "termsOfService": "https://securevault-backend-1.onrender.com/terms/",
         "contact": {
             "name": "API Support",
-            "url": "http://localhost:8080/support",
+            "url": "https://securevault-backend-1.onrender.com/support",
             "email": "support@securevault.com"
         },
         "license": {
@@ -2945,9 +2945,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
+	Host:             "securevault-backend.onrender-1.com",
 	BasePath:         "/api/v1",
-	Schemes:          []string{},
+	Schemes:          []string{"https", "http"},
 	Title:            "SecureVault API",
 	Description:      "SecureVault is a secure file storage service with S3 integration, user authentication, file sharing, and administrative features.",
 	InfoInstanceName: "swagger",

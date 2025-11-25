@@ -1,16 +1,17 @@
 // @title SecureVault API
 // @version 1.0
 // @description SecureVault is a secure file storage service with S3 integration, user authentication, file sharing, and administrative features.
-// @termsOfService http://localhost:8080/terms/
+// @termsOfService https://securevault-backend-1.onrender.com/terms/
 
 // @contact.name API Support
-// @contact.url http://localhost:8080/support
+// @contact.url https://securevault-backend-1.onrender.com/support
 // @contact.email support@securevault.com
 
 // @license.name MIT
 // @license.url https://opensource.org/licenses/MIT
 
-// @host localhost:8080
+// @host securevault-backend.onrender-1.com
+// @schemes https http
 // @BasePath /api/v1
 
 // @securityDefinitions.apikey BearerAuth

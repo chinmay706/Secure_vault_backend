@@ -1,12 +1,16 @@
 {
+    "schemes": [
+        "https",
+        "http"
+    ],
     "swagger": "2.0",
     "info": {
         "description": "SecureVault is a secure file storage service with S3 integration, user authentication, file sharing, and administrative features.",
         "title": "SecureVault API",
-        "termsOfService": "http://localhost:8080/terms/",
+        "termsOfService": "https://securevault-backend-1.onrender.com/terms/",
         "contact": {
             "name": "API Support",
-            "url": "http://localhost:8080/support",
+            "url": "https://securevault-backend-1.onrender.com/support",
             "email": "support@securevault.com"
         },
         "license": {
@@ -15,7 +19,7 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:8080",
+    "host": "securevault-backend.onrender-1.com",
     "basePath": "/api/v1",
     "paths": {
         "/admin/files": {

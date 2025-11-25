@@ -490,18 +490,18 @@ definitions:
       user_id:
         type: string
     type: object
-host: localhost:8080
+host: securevault-backend.onrender-1.com
 info:
   contact:
     email: support@securevault.com
     name: API Support
-    url: http://localhost:8080/support
+    url: https://securevault-backend-1.onrender.com/support
   description: SecureVault is a secure file storage service with S3 integration, user
     authentication, file sharing, and administrative features.
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  termsOfService: http://localhost:8080/terms/
+  termsOfService: https://securevault-backend-1.onrender.com/terms/
   title: SecureVault API
   version: "1.0"
 paths:
@@ -1916,6 +1916,9 @@ paths:
       summary: Update user password
       tags:
       - Authentication
+schemes:
+- https
+- http
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.
