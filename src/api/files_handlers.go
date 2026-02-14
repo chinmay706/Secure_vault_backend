@@ -528,7 +528,13 @@ func (h *FilesHandlers) HandleFileDownload(w http.ResponseWriter, r *http.Reques
 
 	// Set headers for file download
 	w.Header().Set("Content-Type", file.MimeType)
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", file.OriginalFilename))
+	safeName := strings.Map(func(r rune) rune {
+		if r == '"' || r == '\\' || r == '\n' || r == '\r' {
+			return '_'
+		}
+		return r
+	}, file.OriginalFilename)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, safeName))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", file.SizeBytes))
 
 	// Stream file content

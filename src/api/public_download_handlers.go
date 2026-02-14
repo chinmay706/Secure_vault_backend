@@ -1,8 +1,10 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"securevault-backend/src/services"
 
@@ -88,7 +90,13 @@ func (h *PublicDownloadHandlers) HandlePublicDownload(w http.ResponseWriter, r *
 
 	// Set response headers for file download
 	w.Header().Set("Content-Type", file.MimeType)
-	w.Header().Set("Content-Disposition", `attachment; filename="`+file.OriginalFilename+`"`)
+	safeName := strings.Map(func(r rune) rune {
+		if r == '"' || r == '\\' || r == '\n' || r == '\r' {
+			return '_'
+		}
+		return r
+	}, file.OriginalFilename)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, safeName))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", file.SizeBytes))
 	w.Header().Set("X-Filename", file.OriginalFilename)
 	
@@ -123,11 +131,12 @@ func (h *PublicDownloadHandlers) HandlePublicDownload(w http.ResponseWriter, r *
 func (h *PublicDownloadHandlers) writeErrorResponse(w http.ResponseWriter, code, message string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	
-	// Simple JSON encoding without importing encoding/json in this context
-	// In a real implementation, you'd use json.NewEncoder(w).Encode(errorResponse)
-	errorMsg := fmt.Sprintf(`{"error":{"code":"%s","message":"%s"}}`, code, message)
-	w.Write([]byte(errorMsg))
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":    code,
+			"message": message,
+		},
+	})
 }
 
 // copyContent copies content from source to destination with error handling

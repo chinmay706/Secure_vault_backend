@@ -3,6 +3,7 @@ package graphql
 import (
 	"log"
 	"net/http"
+	"os"
 	"securevault-backend/src/graphql/graph"
 	"securevault-backend/src/graphql/middleware"
 	"securevault-backend/src/services"
@@ -35,7 +36,10 @@ func NewGraphQLHandler(authService *services.AuthService, fileService *services.
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 
 	// Add extensions
-	srv.Use(extension.Introspection{})
+	// Only enable introspection in non-production environments
+	if os.Getenv("ENVIRONMENT") != "production" {
+		srv.Use(extension.Introspection{})
+	}
 	srv.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New[string](100),
 	})

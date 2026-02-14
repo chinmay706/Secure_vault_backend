@@ -193,25 +193,11 @@ func (a *App) Close() error {
 
 // setupMiddleware configures global middleware
 func (a *App) setupMiddleware() {
-	// CORS middleware for development (allow all origins)
-	a.router.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Set CORS headers for all requests
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin")
-			w.Header().Set("Access-Control-Expose-Headers", "Content-Length, Content-Type, Content-Disposition")
-			w.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
-			
-			// Handle preflight OPTIONS requests
-			if r.Method == "OPTIONS" {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			
-			next.ServeHTTP(w, r)
-		})
-	})
+	// Security headers middleware
+	a.router.Use(securityHeadersMiddleware)
+
+	// CORS middleware
+	a.router.Use(corsMiddleware)
 
 	// Add authentication context middleware (sets user_id context from JWT)
 	a.router.Use(a.authContextMiddleware())
@@ -264,11 +250,9 @@ func (a *App) setupRoutes(authService *services.AuthService, fileService *servic
 	api.HandleFunc("/folders/{id}/share", a.handlers.Folders.HandleCreateFolderShareLinkWithFilePublicity).Methods("POST", "OPTIONS")
 	api.HandleFunc("/folders/{id}/share", a.handlers.Folders.HandleDeleteFolderShareLinkWithFilePublicity).Methods("DELETE", "OPTIONS")
 	api.HandleFunc("/folders/{id}/share/status", a.handlers.Folders.HandleCheckFolderShareLinkStatus).Methods("GET", "OPTIONS")
-	api.HandleFunc("/folders/{id}/share/status", a.handlers.Folders.HandleCheckFolderShareLinkStatus).Methods("GET", "OPTIONS")
 	
 	// Public download
 	api.HandleFunc("/p/f/{token}", a.handlers.Folders.HandlePublicFolderAccess).Methods("GET")
-	api.HandleFunc("/p/{token}", a.handlers.PublicDownload.HandlePublicDownload).Methods("GET", "HEAD")
 	api.HandleFunc("/p/{token}", a.handlers.PublicDownload.HandlePublicDownload).Methods("GET", "HEAD")
 	
 	// Stats routes
@@ -362,13 +346,54 @@ func (a *App) authContextMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
+// securityHeadersMiddleware adds security headers to all responses
+func securityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		if r.TLS != nil {
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// corsMiddleware handles CORS headers and preflight requests
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Use configured origin in production, wildcard for development
+		allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
+		if allowedOrigin == "" {
+			allowedOrigin = "*"
+		}
+		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin")
+		w.Header().Set("Access-Control-Expose-Headers", "Content-Length, Content-Type, Content-Disposition")
+		w.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
+
+		// Handle preflight OPTIONS requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 // setupGraphQLRoutes configures GraphQL endpoints
 func (a *App) setupGraphQLRoutes(api *mux.Router, authService *services.AuthService, fileService *services.FileService, folderService *services.FolderService, statsService *services.StatsService, storageService *services.StorageService) {
 	// GraphQL endpoint
 	graphqlHandler := graphqlServer.NewGraphQLHandler(authService, fileService, folderService, statsService, storageService)
 	api.Handle("/graphql", graphqlHandler).Methods("POST", "OPTIONS")
 	
-	// GraphQL Playground endpoint
-	playgroundHandler := graphqlServer.NewPlaygroundHandler("/api/v1/graphql")
-	api.Handle("/graphql/playground", playgroundHandler).Methods("GET")
+	// GraphQL Playground - only available in non-production environments
+	if os.Getenv("ENVIRONMENT") != "production" {
+		playgroundHandler := graphqlServer.NewPlaygroundHandler("/api/v1/graphql")
+		api.Handle("/graphql/playground", playgroundHandler).Methods("GET")
+	}
 }
