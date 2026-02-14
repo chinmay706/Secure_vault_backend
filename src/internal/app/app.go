@@ -226,6 +226,7 @@ func (a *App) setupRoutes(authService *services.AuthService, fileService *servic
 	// Auth routes
 	api.HandleFunc("/auth/signup", a.handlers.Auth.HandleSignup).Methods("POST", "OPTIONS")
 	api.HandleFunc("/auth/login", a.handlers.Auth.HandleLogin).Methods("POST", "OPTIONS")
+	api.HandleFunc("/auth/google", a.handlers.Auth.HandleGoogleLogin).Methods("POST", "OPTIONS")
 	
 	// User management routes (authenticated)
 	api.HandleFunc("/users/{id}", a.handlers.Auth.HandleDeleteUser).Methods("DELETE", "OPTIONS")

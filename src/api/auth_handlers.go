@@ -240,6 +240,87 @@ func (h *AuthHandlers) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// GoogleLoginRequest represents the request payload for Google OAuth login
+type GoogleLoginRequest struct {
+	IDToken string `json:"id_token"`
+}
+
+// HandleGoogleLogin handles POST /api/v1/auth/google
+// @Summary Authenticate with Google
+// @Description Authenticate user using a Google OAuth ID token. Creates account if first login.
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body GoogleLoginRequest true "Google ID token"
+// @Success 200 {object} AuthResponse "User successfully authenticated"
+// @Success 201 {object} AuthResponse "New user account created via Google"
+// @Failure 400 {object} ErrorResponse "Invalid request data"
+// @Failure 401 {object} ErrorResponse "Invalid Google token"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /auth/google [post]
+func (h *AuthHandlers) HandleGoogleLogin(w http.ResponseWriter, r *http.Request) {
+	var req GoogleLoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.sendErrorResponse(w, http.StatusBadRequest, "INVALID_JSON",
+			"Invalid JSON in request body", nil)
+		return
+	}
+
+	if req.IDToken == "" {
+		h.sendErrorResponse(w, http.StatusBadRequest, "MISSING_TOKEN",
+			"Google ID token is required", nil)
+		return
+	}
+
+	serviceReq := &services.GoogleLoginRequest{
+		IDToken: req.IDToken,
+	}
+
+	authResp, err := h.authService.GoogleLogin(serviceReq)
+	if err != nil {
+		log.Printf("Google login error: %v", err)
+
+		if strings.Contains(err.Error(), "invalid Google ID token") {
+			h.sendErrorResponse(w, http.StatusUnauthorized, "INVALID_GOOGLE_TOKEN",
+				"The Google ID token is invalid or expired", nil)
+			return
+		}
+
+		if strings.Contains(err.Error(), "not configured") {
+			h.sendErrorResponse(w, http.StatusInternalServerError, "GOOGLE_NOT_CONFIGURED",
+				"Google OAuth is not configured on this server", nil)
+			return
+		}
+
+		h.sendErrorResponse(w, http.StatusInternalServerError, "GOOGLE_LOGIN_FAILED",
+			"Failed to authenticate with Google", nil)
+		return
+	}
+
+	// Build response
+	userData := &UserResponseData{
+		ID:                authResp.User.ID,
+		Email:             authResp.User.Email,
+		Role:              authResp.User.Role,
+		RateLimitRps:      authResp.User.RateLimitRps,
+		StorageQuotaBytes: authResp.User.StorageQuotaBytes,
+		CreatedAt:         authResp.User.CreatedAt,
+	}
+
+	if authResp.User.Name.Valid {
+		userData.Name = authResp.User.Name.String
+	}
+
+	response := AuthResponse{
+		Token: authResp.Token,
+		User:  userData,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
 // sendErrorResponse sends a standardized error response
 func (h *AuthHandlers) sendErrorResponse(w http.ResponseWriter, statusCode int, errorCode, message string, details interface{}) {
 	w.Header().Set("Content-Type", "application/json")
