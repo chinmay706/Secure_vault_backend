@@ -20,6 +20,7 @@ type File struct {
 	FolderID         *uuid.UUID `json:"folder_id,omitempty" db:"folder_id"`
 	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
+	DeletedAt        *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
 }
 
 // NewFile creates a new file with the given parameters

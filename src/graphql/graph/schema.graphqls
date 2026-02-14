@@ -33,6 +33,7 @@ type File {
   tags: [String!]!
   created_at: DateTime!
   updated_at: DateTime!
+  deleted_at: DateTime
   share_link: ShareLink
 }
 
@@ -43,6 +44,7 @@ type Folder {
   parent_id: UUID
   created_at: DateTime!
   updated_at: DateTime!
+  deleted_at: DateTime
   share_link: ShareLink
 }
 
@@ -113,6 +115,15 @@ type ActiveUserEntry {
   file_count: Int!
   last_upload: DateTime
   total_downloads: Int!
+}
+
+# Trash response for listing trashed items
+type TrashResponse {
+  files: [File!]!
+  folders: [Folder!]!
+  page: Int!
+  page_size: Int!
+  total: Int!
 }
 
 # List responses matching REST structure exactly
@@ -219,6 +230,9 @@ type Query {
     page_size: Int = 20
   ): FolderChildrenResponse!
 
+  # Trash / Recycle Bin query
+  trash(page: Int, page_size: Int): TrashResponse!
+
   # Admin-only queries
   # List all files with admin details (mirrors GET /api/v1/admin/files)
   adminFiles(
@@ -270,6 +284,15 @@ type Mutation {
 
   # Delete folder share link (mirrors DELETE /api/v1/folders/{id}/share)
   deleteFolderShareLink(id: UUID!): Boolean!
+
+  # Trash / Recycle Bin mutations
+  trashFile(id: UUID!): Boolean!
+  trashFolder(id: UUID!, recursive: Boolean = true): Boolean!
+  restoreFile(id: UUID!): File!
+  restoreFolder(id: UUID!): Folder!
+  permanentDeleteFile(id: UUID!): Boolean!
+  permanentDeleteFolder(id: UUID!): Boolean!
+  emptyTrash: Boolean!
 
   # Admin-only mutations
   # Admin delete file (mirrors DELETE /api/v1/admin/files/{id})

@@ -102,6 +102,7 @@ type ComplexityRoot struct {
 
 	File struct {
 		CreatedAt        func(childComplexity int) int
+		DeletedAt        func(childComplexity int) int
 		DownloadCount    func(childComplexity int) int
 		FolderID         func(childComplexity int) int
 		ID               func(childComplexity int) int
@@ -129,6 +130,7 @@ type ComplexityRoot struct {
 
 	Folder struct {
 		CreatedAt func(childComplexity int) int
+		DeletedAt func(childComplexity int) int
 		ID        func(childComplexity int) int
 		Name      func(childComplexity int) int
 		OwnerID   func(childComplexity int) int
@@ -163,11 +165,18 @@ type ComplexityRoot struct {
 		DeleteFile            func(childComplexity int, id uuid.UUID) int
 		DeleteFolder          func(childComplexity int, id uuid.UUID, recursive *bool) int
 		DeleteFolderShareLink func(childComplexity int, id uuid.UUID) int
+		EmptyTrash            func(childComplexity int) int
 		Login                 func(childComplexity int, email string, password string) int
 		MoveFile              func(childComplexity int, fileID uuid.UUID, folderID *uuid.UUID) int
 		MoveFolder            func(childComplexity int, id uuid.UUID, parentID *uuid.UUID) int
+		PermanentDeleteFile   func(childComplexity int, id uuid.UUID) int
+		PermanentDeleteFolder func(childComplexity int, id uuid.UUID) int
+		RestoreFile           func(childComplexity int, id uuid.UUID) int
+		RestoreFolder         func(childComplexity int, id uuid.UUID) int
 		Signup                func(childComplexity int, email string, password string) int
 		ToggleFilePublic      func(childComplexity int, id uuid.UUID, isPublic bool) int
+		TrashFile             func(childComplexity int, id uuid.UUID) int
+		TrashFolder           func(childComplexity int, id uuid.UUID, recursive *bool) int
 		UpdateFolder          func(childComplexity int, id uuid.UUID, name *string) int
 	}
 
@@ -192,6 +201,7 @@ type ComplexityRoot struct {
 		PublicFile   func(childComplexity int, token string) int
 		PublicFolder func(childComplexity int, token string, page *int, pageSize *int) int
 		Stats        func(childComplexity int, from *string, to *string, groupBy *string) int
+		Trash        func(childComplexity int, page *int, pageSize *int) int
 	}
 
 	RegistrationEntry struct {
@@ -215,6 +225,14 @@ type ComplexityRoot struct {
 		TotalFiles          func(childComplexity int) int
 		TotalSizeBytes      func(childComplexity int) int
 		UploadHistory       func(childComplexity int) int
+	}
+
+	TrashResponse struct {
+		Files    func(childComplexity int) int
+		Folders  func(childComplexity int) int
+		Page     func(childComplexity int) int
+		PageSize func(childComplexity int) int
+		Total    func(childComplexity int) int
 	}
 
 	UploadHistoryEntry struct {
@@ -274,6 +292,13 @@ type MutationResolver interface {
 	DeleteFolder(ctx context.Context, id uuid.UUID, recursive *bool) (bool, error)
 	CreateFolderShareLink(ctx context.Context, id uuid.UUID) (*models.ShareLink, error)
 	DeleteFolderShareLink(ctx context.Context, id uuid.UUID) (bool, error)
+	TrashFile(ctx context.Context, id uuid.UUID) (bool, error)
+	TrashFolder(ctx context.Context, id uuid.UUID, recursive *bool) (bool, error)
+	RestoreFile(ctx context.Context, id uuid.UUID) (*models.File, error)
+	RestoreFolder(ctx context.Context, id uuid.UUID) (*models.Folder, error)
+	PermanentDeleteFile(ctx context.Context, id uuid.UUID) (bool, error)
+	PermanentDeleteFolder(ctx context.Context, id uuid.UUID) (bool, error)
+	EmptyTrash(ctx context.Context) (bool, error)
 	AdminDeleteFile(ctx context.Context, id uuid.UUID) (bool, error)
 }
 type QueryResolver interface {
@@ -288,6 +313,7 @@ type QueryResolver interface {
 	Stats(ctx context.Context, from *string, to *string, groupBy *string) (*api.StatsResponse, error)
 	PublicFile(ctx context.Context, token string) (*models.File, error)
 	PublicFolder(ctx context.Context, token string, page *int, pageSize *int) (*api.FolderChildrenResponse, error)
+	Trash(ctx context.Context, page *int, pageSize *int) (*model.TrashResponse, error)
 	AdminFiles(ctx context.Context, userID *uuid.UUID, userEmail *string, filename *string, mimeType *string, tags *string, page *int, pageSize *int) (*api.AdminFilesResponse, error)
 	AdminStats(ctx context.Context) (*api.AdminStatsResponse, error)
 }
@@ -487,6 +513,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.File.CreatedAt(childComplexity), true
+	case "File.deleted_at":
+		if e.complexity.File.DeletedAt == nil {
+			break
+		}
+
+		return e.complexity.File.DeletedAt(childComplexity), true
 	case "File.download_count":
 		if e.complexity.File.DownloadCount == nil {
 			break
@@ -598,6 +630,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Folder.CreatedAt(childComplexity), true
+	case "Folder.deleted_at":
+		if e.complexity.Folder.DeletedAt == nil {
+			break
+		}
+
+		return e.complexity.Folder.DeletedAt(childComplexity), true
 	case "Folder.id":
 		if e.complexity.Folder.ID == nil {
 			break
@@ -764,6 +802,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteFolderShareLink(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.emptyTrash":
+		if e.complexity.Mutation.EmptyTrash == nil {
+			break
+		}
+
+		return e.complexity.Mutation.EmptyTrash(childComplexity), true
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
 			break
@@ -797,6 +841,50 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.MoveFolder(childComplexity, args["id"].(uuid.UUID), args["parent_id"].(*uuid.UUID)), true
+	case "Mutation.permanentDeleteFile":
+		if e.complexity.Mutation.PermanentDeleteFile == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_permanentDeleteFile_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.PermanentDeleteFile(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.permanentDeleteFolder":
+		if e.complexity.Mutation.PermanentDeleteFolder == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_permanentDeleteFolder_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.PermanentDeleteFolder(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.restoreFile":
+		if e.complexity.Mutation.RestoreFile == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_restoreFile_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RestoreFile(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.restoreFolder":
+		if e.complexity.Mutation.RestoreFolder == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_restoreFolder_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RestoreFolder(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.signup":
 		if e.complexity.Mutation.Signup == nil {
 			break
@@ -819,6 +907,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.ToggleFilePublic(childComplexity, args["id"].(uuid.UUID), args["is_public"].(bool)), true
+	case "Mutation.trashFile":
+		if e.complexity.Mutation.TrashFile == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_trashFile_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.TrashFile(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.trashFolder":
+		if e.complexity.Mutation.TrashFolder == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_trashFolder_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.TrashFolder(childComplexity, args["id"].(uuid.UUID), args["recursive"].(*bool)), true
 	case "Mutation.updateFolder":
 		if e.complexity.Mutation.UpdateFolder == nil {
 			break
@@ -979,6 +1089,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Stats(childComplexity, args["from"].(*string), args["to"].(*string), args["group_by"].(*string)), true
+	case "Query.trash":
+		if e.complexity.Query.Trash == nil {
+			break
+		}
+
+		args, err := ec.field_Query_trash_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Trash(childComplexity, args["page"].(*int), args["page_size"].(*int)), true
 
 	case "RegistrationEntry.count":
 		if e.complexity.RegistrationEntry.Count == nil {
@@ -1066,6 +1187,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.StatsResponse.UploadHistory(childComplexity), true
+
+	case "TrashResponse.files":
+		if e.complexity.TrashResponse.Files == nil {
+			break
+		}
+
+		return e.complexity.TrashResponse.Files(childComplexity), true
+	case "TrashResponse.folders":
+		if e.complexity.TrashResponse.Folders == nil {
+			break
+		}
+
+		return e.complexity.TrashResponse.Folders(childComplexity), true
+	case "TrashResponse.page":
+		if e.complexity.TrashResponse.Page == nil {
+			break
+		}
+
+		return e.complexity.TrashResponse.Page(childComplexity), true
+	case "TrashResponse.page_size":
+		if e.complexity.TrashResponse.PageSize == nil {
+			break
+		}
+
+		return e.complexity.TrashResponse.PageSize(childComplexity), true
+	case "TrashResponse.total":
+		if e.complexity.TrashResponse.Total == nil {
+			break
+		}
+
+		return e.complexity.TrashResponse.Total(childComplexity), true
 
 	case "UploadHistoryEntry.count":
 		if e.complexity.UploadHistoryEntry.Count == nil {
@@ -1401,6 +1553,50 @@ func (ec *executionContext) field_Mutation_moveFolder_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_permanentDeleteFile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_permanentDeleteFolder_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_restoreFile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_restoreFolder_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_signup_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1430,6 +1626,33 @@ func (ec *executionContext) field_Mutation_toggleFilePublic_args(ctx context.Con
 		return nil, err
 	}
 	args["is_public"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_trashFile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_trashFolder_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "recursive", ec.unmarshalOBoolean2ᚖbool)
+	if err != nil {
+		return nil, err
+	}
+	args["recursive"] = arg1
 	return args, nil
 }
 
@@ -1631,6 +1854,22 @@ func (ec *executionContext) field_Query_stats_args(ctx context.Context, rawArgs 
 		return nil, err
 	}
 	args["group_by"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_trash_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["page"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "page_size", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["page_size"] = arg1
 	return args, nil
 }
 
@@ -2868,6 +3107,35 @@ func (ec *executionContext) fieldContext_File_updated_at(_ context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _File_deleted_at(ctx context.Context, field graphql.CollectedField, obj *models.File) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_File_deleted_at,
+		func(ctx context.Context) (any, error) {
+			return obj.DeletedAt, nil
+		},
+		nil,
+		ec.marshalODateTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_File_deleted_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "File",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _File_share_link(ctx context.Context, field graphql.CollectedField, obj *models.File) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2955,6 +3223,8 @@ func (ec *executionContext) fieldContext_FileListResponse_files(_ context.Contex
 				return ec.fieldContext_File_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_File_share_link(ctx, field)
 			}
@@ -3283,6 +3553,35 @@ func (ec *executionContext) fieldContext_Folder_updated_at(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Folder_deleted_at(ctx context.Context, field graphql.CollectedField, obj *models.Folder) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Folder_deleted_at,
+		func(ctx context.Context) (any, error) {
+			return obj.DeletedAt, nil
+		},
+		nil,
+		ec.marshalODateTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Folder_deleted_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Folder",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Folder_share_link(ctx context.Context, field graphql.CollectedField, obj *models.Folder) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3360,6 +3659,8 @@ func (ec *executionContext) fieldContext_FolderChildrenResponse_folders(_ contex
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -3415,6 +3716,8 @@ func (ec *executionContext) fieldContext_FolderChildrenResponse_files(_ context.
 				return ec.fieldContext_File_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_File_share_link(ctx, field)
 			}
@@ -3501,6 +3804,8 @@ func (ec *executionContext) fieldContext_FolderDetailsResponse_folder(_ context.
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -3546,6 +3851,8 @@ func (ec *executionContext) fieldContext_FolderDetailsResponse_breadcrumbs(_ con
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -3841,6 +4148,8 @@ func (ec *executionContext) fieldContext_Mutation_toggleFilePublic(ctx context.C
 				return ec.fieldContext_File_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_File_share_link(ctx, field)
 			}
@@ -3949,6 +4258,8 @@ func (ec *executionContext) fieldContext_Mutation_moveFile(ctx context.Context, 
 				return ec.fieldContext_File_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_File_share_link(ctx, field)
 			}
@@ -4006,6 +4317,8 @@ func (ec *executionContext) fieldContext_Mutation_createFolder(ctx context.Conte
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -4063,6 +4376,8 @@ func (ec *executionContext) fieldContext_Mutation_updateFolder(ctx context.Conte
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -4120,6 +4435,8 @@ func (ec *executionContext) fieldContext_Mutation_moveFolder(ctx context.Context
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -4271,6 +4588,327 @@ func (ec *executionContext) fieldContext_Mutation_deleteFolderShareLink(ctx cont
 	if fc.Args, err = ec.field_Mutation_deleteFolderShareLink_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_trashFile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_trashFile,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().TrashFile(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_trashFile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_trashFile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_trashFolder(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_trashFolder,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().TrashFolder(ctx, fc.Args["id"].(uuid.UUID), fc.Args["recursive"].(*bool))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_trashFolder(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_trashFolder_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_restoreFile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_restoreFile,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RestoreFile(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNFile2ᚖsecurevaultᚑbackendᚋsrcᚋmodelsᚐFile,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_restoreFile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_File_id(ctx, field)
+			case "owner_id":
+				return ec.fieldContext_File_owner_id(ctx, field)
+			case "original_filename":
+				return ec.fieldContext_File_original_filename(ctx, field)
+			case "mime_type":
+				return ec.fieldContext_File_mime_type(ctx, field)
+			case "size_bytes":
+				return ec.fieldContext_File_size_bytes(ctx, field)
+			case "folder_id":
+				return ec.fieldContext_File_folder_id(ctx, field)
+			case "is_public":
+				return ec.fieldContext_File_is_public(ctx, field)
+			case "download_count":
+				return ec.fieldContext_File_download_count(ctx, field)
+			case "tags":
+				return ec.fieldContext_File_tags(ctx, field)
+			case "created_at":
+				return ec.fieldContext_File_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
+			case "share_link":
+				return ec.fieldContext_File_share_link(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_restoreFile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_restoreFolder(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_restoreFolder,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RestoreFolder(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNFolder2ᚖsecurevaultᚑbackendᚋsrcᚋmodelsᚐFolder,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_restoreFolder(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Folder_id(ctx, field)
+			case "owner_id":
+				return ec.fieldContext_Folder_owner_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Folder_name(ctx, field)
+			case "parent_id":
+				return ec.fieldContext_Folder_parent_id(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Folder_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
+			case "share_link":
+				return ec.fieldContext_Folder_share_link(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Folder", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_restoreFolder_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_permanentDeleteFile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_permanentDeleteFile,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().PermanentDeleteFile(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_permanentDeleteFile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_permanentDeleteFile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_permanentDeleteFolder(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_permanentDeleteFolder,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().PermanentDeleteFolder(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_permanentDeleteFolder(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_permanentDeleteFolder_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_emptyTrash(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_emptyTrash,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Mutation().EmptyTrash(ctx)
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_emptyTrash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -4641,6 +5279,8 @@ func (ec *executionContext) fieldContext_Query_foldersOnly(ctx context.Context, 
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -4697,6 +5337,8 @@ func (ec *executionContext) fieldContext_Query_allFolders(_ context.Context, fie
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -4800,6 +5442,8 @@ func (ec *executionContext) fieldContext_Query_file(ctx context.Context, field g
 				return ec.fieldContext_File_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_File_share_link(ctx, field)
 			}
@@ -4924,6 +5568,8 @@ func (ec *executionContext) fieldContext_Query_publicFile(ctx context.Context, f
 				return ec.fieldContext_File_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_File_share_link(ctx, field)
 			}
@@ -4987,6 +5633,59 @@ func (ec *executionContext) fieldContext_Query_publicFolder(ctx context.Context,
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_publicFolder_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_trash(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_trash,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Trash(ctx, fc.Args["page"].(*int), fc.Args["page_size"].(*int))
+		},
+		nil,
+		ec.marshalNTrashResponse2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐTrashResponse,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_trash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "files":
+				return ec.fieldContext_TrashResponse_files(ctx, field)
+			case "folders":
+				return ec.fieldContext_TrashResponse_folders(ctx, field)
+			case "page":
+				return ec.fieldContext_TrashResponse_page(ctx, field)
+			case "page_size":
+				return ec.fieldContext_TrashResponse_page_size(ctx, field)
+			case "total":
+				return ec.fieldContext_TrashResponse_total(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrashResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_trash_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5612,6 +6311,197 @@ func (ec *executionContext) fieldContext_StatsResponse_upload_history(_ context.
 				return ec.fieldContext_UploadHistoryEntry_total_size(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type UploadHistoryEntry", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrashResponse_files(ctx context.Context, field graphql.CollectedField, obj *model.TrashResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrashResponse_files,
+		func(ctx context.Context) (any, error) {
+			return obj.Files, nil
+		},
+		nil,
+		ec.marshalNFile2ᚕᚖsecurevaultᚑbackendᚋsrcᚋmodelsᚐFileᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrashResponse_files(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrashResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_File_id(ctx, field)
+			case "owner_id":
+				return ec.fieldContext_File_owner_id(ctx, field)
+			case "original_filename":
+				return ec.fieldContext_File_original_filename(ctx, field)
+			case "mime_type":
+				return ec.fieldContext_File_mime_type(ctx, field)
+			case "size_bytes":
+				return ec.fieldContext_File_size_bytes(ctx, field)
+			case "folder_id":
+				return ec.fieldContext_File_folder_id(ctx, field)
+			case "is_public":
+				return ec.fieldContext_File_is_public(ctx, field)
+			case "download_count":
+				return ec.fieldContext_File_download_count(ctx, field)
+			case "tags":
+				return ec.fieldContext_File_tags(ctx, field)
+			case "created_at":
+				return ec.fieldContext_File_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
+			case "share_link":
+				return ec.fieldContext_File_share_link(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrashResponse_folders(ctx context.Context, field graphql.CollectedField, obj *model.TrashResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrashResponse_folders,
+		func(ctx context.Context) (any, error) {
+			return obj.Folders, nil
+		},
+		nil,
+		ec.marshalNFolder2ᚕᚖsecurevaultᚑbackendᚋsrcᚋmodelsᚐFolderᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrashResponse_folders(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrashResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Folder_id(ctx, field)
+			case "owner_id":
+				return ec.fieldContext_Folder_owner_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Folder_name(ctx, field)
+			case "parent_id":
+				return ec.fieldContext_Folder_parent_id(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Folder_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
+			case "share_link":
+				return ec.fieldContext_Folder_share_link(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Folder", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrashResponse_page(ctx context.Context, field graphql.CollectedField, obj *model.TrashResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrashResponse_page,
+		func(ctx context.Context) (any, error) {
+			return obj.Page, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrashResponse_page(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrashResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrashResponse_page_size(ctx context.Context, field graphql.CollectedField, obj *model.TrashResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrashResponse_page_size,
+		func(ctx context.Context) (any, error) {
+			return obj.PageSize, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrashResponse_page_size(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrashResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrashResponse_total(ctx context.Context, field graphql.CollectedField, obj *model.TrashResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrashResponse_total,
+		func(ctx context.Context) (any, error) {
+			return obj.Total, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrashResponse_total(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrashResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7873,6 +8763,8 @@ func (ec *executionContext) _File(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "deleted_at":
+			out.Values[i] = ec._File_deleted_at(ctx, field, obj)
 		case "share_link":
 			field := field
 
@@ -8096,6 +8988,8 @@ func (ec *executionContext) _Folder(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "deleted_at":
+			out.Values[i] = ec._Folder_deleted_at(ctx, field, obj)
 		case "share_link":
 			field := field
 
@@ -8555,6 +9449,55 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "trashFile":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_trashFile(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "trashFolder":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_trashFolder(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "restoreFile":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_restoreFile(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "restoreFolder":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_restoreFolder(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "permanentDeleteFile":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_permanentDeleteFile(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "permanentDeleteFolder":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_permanentDeleteFolder(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "emptyTrash":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_emptyTrash(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "adminDeleteFile":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_adminDeleteFile(ctx, field)
@@ -8900,6 +9843,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "trash":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_trash(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "adminFiles":
 			field := field
 
@@ -9154,6 +10119,65 @@ func (ec *executionContext) _StatsResponse(ctx context.Context, sel ast.Selectio
 			out.Values[i] = ec._StatsResponse_upload_history(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var trashResponseImplementors = []string{"TrashResponse"}
+
+func (ec *executionContext) _TrashResponse(ctx context.Context, sel ast.SelectionSet, obj *model.TrashResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, trashResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TrashResponse")
+		case "files":
+			out.Values[i] = ec._TrashResponse_files(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "folders":
+			out.Values[i] = ec._TrashResponse_folders(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "page":
+			out.Values[i] = ec._TrashResponse_page(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "page_size":
+			out.Values[i] = ec._TrashResponse_page_size(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "total":
+			out.Values[i] = ec._TrashResponse_total(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -10246,6 +11270,20 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalNTrashResponse2securevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐTrashResponse(ctx context.Context, sel ast.SelectionSet, v model.TrashResponse) graphql.Marshaler {
+	return ec._TrashResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTrashResponse2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐTrashResponse(ctx context.Context, sel ast.SelectionSet, v *model.TrashResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TrashResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v any) (uuid.UUID, error) {

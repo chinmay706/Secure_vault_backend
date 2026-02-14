@@ -131,9 +131,9 @@ func (s *FileService) GetFileByID(fileID uuid.UUID) (*models.File, error) {
 	var file models.File
 	query := `
 		SELECT id, owner_id, blob_hash, original_filename, mime_type, size_bytes,
-		       is_public, download_count, tags, folder_id, created_at, updated_at
+		       is_public, download_count, tags, folder_id, created_at, updated_at, deleted_at
 		FROM files 
-		WHERE id = $1
+		WHERE id = $1 AND deleted_at IS NULL
 	`
 
 	err := s.db.QueryRow(query, fileID).Scan(
@@ -149,6 +149,7 @@ func (s *FileService) GetFileByID(fileID uuid.UUID) (*models.File, error) {
 		&file.FolderID,
 		&file.CreatedAt,
 		&file.UpdatedAt,
+		&file.DeletedAt,
 	)
 
 	if err != nil {
@@ -179,9 +180,9 @@ func (s *FileService) GetFilesByOwner(ownerID uuid.UUID, offset, limit int) ([]*
 
 	query := `
 		SELECT id, owner_id, blob_hash, original_filename, mime_type, size_bytes,
-		       is_public, download_count, tags, created_at, updated_at
+		       is_public, download_count, tags, folder_id, created_at, updated_at, deleted_at
 		FROM files 
-		WHERE owner_id = $1
+		WHERE owner_id = $1 AND deleted_at IS NULL
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
 	`
@@ -205,8 +206,10 @@ func (s *FileService) GetFilesByOwner(ownerID uuid.UUID, offset, limit int) ([]*
 			&file.IsPublic,
 			&file.DownloadCount,
 			pq.Array(&file.Tags),
+			&file.FolderID,
 			&file.CreatedAt,
 			&file.UpdatedAt,
+			&file.DeletedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan file: %w", err)
@@ -381,9 +384,9 @@ func (s *FileService) SearchFiles(params *SearchParams, requesterID uuid.UUID) (
 	// Base query with owner filter (users can only search their own files)
 	baseQuery := `
 		SELECT id, owner_id, blob_hash, original_filename, mime_type, size_bytes,
-		       is_public, download_count, tags, created_at, updated_at
+		       is_public, download_count, tags, folder_id, created_at, updated_at, deleted_at
 		FROM files 
-		WHERE owner_id = $1
+		WHERE owner_id = $1 AND deleted_at IS NULL
 	`
 	
 	args = append(args, requesterID)
@@ -494,8 +497,10 @@ func (s *FileService) SearchFiles(params *SearchParams, requesterID uuid.UUID) (
 			&file.IsPublic,
 			&file.DownloadCount,
 			pq.Array(&file.Tags),
+			&file.FolderID,
 			&file.CreatedAt,
 			&file.UpdatedAt,
+			&file.DeletedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan file: %w", err)
@@ -622,7 +627,7 @@ func (s *FileService) GetFileStats(userID uuid.UUID) (*FileStats, error) {
 			COUNT(CASE WHEN is_public = true THEN 1 END) as public_files,
 			COALESCE(SUM(download_count), 0) as total_downloads
 		FROM files
-		WHERE owner_id = $1
+		WHERE owner_id = $1 AND deleted_at IS NULL
 	`
 
 	var stats FileStats
@@ -737,7 +742,7 @@ func (s *FileService) ListFilesEnhanced(req FileListRequest) (*FileListResponse,
 	// Query files with pagination using hardcoded approach to avoid prepared statement conflicts
 	query := fmt.Sprintf(`
 		SELECT f.id, f.owner_id, f.blob_hash, f.original_filename, f.mime_type, f.size_bytes,
-		       f.is_public, f.download_count, f.tags, f.folder_id, f.created_at, f.updated_at
+		       f.is_public, f.download_count, f.tags, f.folder_id, f.created_at, f.updated_at, f.deleted_at
 		FROM files f %s %s
 		LIMIT %d OFFSET %d`,
 		whereClause, orderClause, req.PageSize, offset)
@@ -756,7 +761,7 @@ func (s *FileService) ListFilesEnhanced(req FileListRequest) (*FileListResponse,
 		var file models.File
 		err := rows.Scan(
 			&file.ID, &file.OwnerID, &file.BlobHash, &file.OriginalFilename, &file.MimeType, &file.SizeBytes,
-			&file.IsPublic, &file.DownloadCount, pq.Array(&file.Tags), &file.FolderID, &file.CreatedAt, &file.UpdatedAt,
+			&file.IsPublic, &file.DownloadCount, pq.Array(&file.Tags), &file.FolderID, &file.CreatedAt, &file.UpdatedAt, &file.DeletedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan file row: %w", err)
@@ -791,6 +796,9 @@ func (s *FileService) buildEnhancedWhereClause(req FileListRequest) (string, []i
 	var conditions []string
 	var args []interface{}
 	argIndex := 1
+
+	// Always exclude trashed files
+	conditions = append(conditions, "f.deleted_at IS NULL")
 
 	// Owner filter with table alias
 	if req.OwnerID != nil {
@@ -872,6 +880,9 @@ func (s *FileService) buildEnhancedWhereClause(req FileListRequest) (string, []i
 // buildHardcodedWhereClause creates WHERE clause with hardcoded values to avoid prepared statement issues
 func (s *FileService) buildHardcodedWhereClause(req FileListRequest) string {
 	var conditions []string
+
+	// Always exclude trashed files
+	conditions = append(conditions, "f.deleted_at IS NULL")
 
 	// Owner filter with hardcoded UUID
 	if req.OwnerID != nil {
@@ -971,7 +982,7 @@ func (s *FileService) CheckFileAccess(fileID uuid.UUID, userID *uuid.UUID) (bool
 	query := `
 		SELECT owner_id, is_public 
 		FROM files 
-		WHERE id = $1`
+		WHERE id = $1 AND deleted_at IS NULL`
 
 	var ownerID uuid.UUID
 	var isPublic bool
@@ -1029,15 +1040,15 @@ func (s *FileService) AddTagsToFile(fileID, userID uuid.UUID, tags []string) (*m
 	query := `
 		UPDATE files 
 		SET tags = array(SELECT DISTINCT unnest(tags || $1)), updated_at = $2
-		WHERE id = $3 AND owner_id = $4
+		WHERE id = $3 AND owner_id = $4 AND deleted_at IS NULL
 		RETURNING id, owner_id, blob_hash, original_filename, mime_type, size_bytes,
-		         is_public, download_count, tags, created_at, updated_at`
+		         is_public, download_count, tags, folder_id, created_at, updated_at, deleted_at`
 
 	var updatedFile models.File
 	err = s.db.QueryRow(query, pq.Array(tags), time.Now().UTC(), fileID, userID).Scan(
 		&updatedFile.ID, &updatedFile.OwnerID, &updatedFile.BlobHash, &updatedFile.OriginalFilename, 
 		&updatedFile.MimeType, &updatedFile.SizeBytes, &updatedFile.IsPublic, &updatedFile.DownloadCount, 
-		pq.Array(&updatedFile.Tags), &updatedFile.CreatedAt, &updatedFile.UpdatedAt,
+		pq.Array(&updatedFile.Tags), &updatedFile.FolderID, &updatedFile.CreatedAt, &updatedFile.UpdatedAt, &updatedFile.DeletedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -1066,15 +1077,15 @@ func (s *FileService) RemoveTagsFromFile(fileID, userID uuid.UUID, tags []string
 	query := `
 		UPDATE files 
 		SET tags = array(SELECT unnest(tags) EXCEPT SELECT unnest($1::text[])), updated_at = $2
-		WHERE id = $3 AND owner_id = $4
+		WHERE id = $3 AND owner_id = $4 AND deleted_at IS NULL
 		RETURNING id, owner_id, blob_hash, original_filename, mime_type, size_bytes,
-		         is_public, download_count, tags, created_at, updated_at`
+		         is_public, download_count, tags, folder_id, created_at, updated_at, deleted_at`
 
 	var updatedFile models.File
 	err = s.db.QueryRow(query, pq.Array(tags), time.Now().UTC(), fileID, userID).Scan(
 		&updatedFile.ID, &updatedFile.OwnerID, &updatedFile.BlobHash, &updatedFile.OriginalFilename, 
 		&updatedFile.MimeType, &updatedFile.SizeBytes, &updatedFile.IsPublic, &updatedFile.DownloadCount, 
-		pq.Array(&updatedFile.Tags), &updatedFile.CreatedAt, &updatedFile.UpdatedAt,
+		pq.Array(&updatedFile.Tags), &updatedFile.FolderID, &updatedFile.CreatedAt, &updatedFile.UpdatedAt, &updatedFile.DeletedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -1247,11 +1258,11 @@ func (s *FileService) GetFileByShareToken(token string) (*models.File, error) {
 	// Query to get file and sharelink info together
 	query := `
 		SELECT f.id, f.owner_id, f.blob_hash, f.original_filename, f.mime_type, 
-		       f.size_bytes, f.is_public, f.download_count, f.tags, f.created_at, f.updated_at,
+		       f.size_bytes, f.is_public, f.download_count, f.tags, f.folder_id, f.created_at, f.updated_at, f.deleted_at,
 		       sl.expires_at, sl.is_active
 		FROM files f
 		JOIN sharelinks sl ON f.id = sl.file_id
-		WHERE sl.token = $1`
+		WHERE sl.token = $1 AND f.deleted_at IS NULL`
 
 	var file models.File
 	var expiresAt *time.Time
@@ -1267,8 +1278,10 @@ func (s *FileService) GetFileByShareToken(token string) (*models.File, error) {
 		&file.IsPublic,
 		&file.DownloadCount,
 		pq.Array(&file.Tags),
+		&file.FolderID,
 		&file.CreatedAt,
 		&file.UpdatedAt,
+		&file.DeletedAt,
 		&expiresAt,
 		&isActive,
 	)
@@ -1309,7 +1322,7 @@ func (s *FileService) GetPublicFilesByOwnerID(ownerID uuid.UUID, page, pageSize 
 	offset := (page - 1) * pageSize
 
 	// Get total count
-	countQuery := `SELECT COUNT(*) FROM files WHERE owner_id = $1 AND is_public = true`
+	countQuery := `SELECT COUNT(*) FROM files WHERE owner_id = $1 AND is_public = true AND deleted_at IS NULL`
 	var total int
 	err := s.db.QueryRow(countQuery, ownerID).Scan(&total)
 	if err != nil {
@@ -1319,9 +1332,9 @@ func (s *FileService) GetPublicFilesByOwnerID(ownerID uuid.UUID, page, pageSize 
 	// Get paginated files
 	query := `
 		SELECT id, owner_id, blob_hash, original_filename, mime_type, size_bytes,
-		       is_public, download_count, tags, folder_id, created_at, updated_at
+		       is_public, download_count, tags, folder_id, created_at, updated_at, deleted_at
 		FROM files 
-		WHERE owner_id = $1 AND is_public = true
+		WHERE owner_id = $1 AND is_public = true AND deleted_at IS NULL
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
 	`
@@ -1338,7 +1351,7 @@ func (s *FileService) GetPublicFilesByOwnerID(ownerID uuid.UUID, page, pageSize 
 		err := rows.Scan(
 			&file.ID, &file.OwnerID, &file.BlobHash, &file.OriginalFilename, &file.MimeType,
 			&file.SizeBytes, &file.IsPublic, &file.DownloadCount, pq.Array(&file.Tags), &file.FolderID,
-			&file.CreatedAt, &file.UpdatedAt,
+			&file.CreatedAt, &file.UpdatedAt, &file.DeletedAt,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan file row: %w", err)
@@ -1362,15 +1375,15 @@ func (s *FileService) GetPublicFileByID(fileID uuid.UUID) (*models.File, error) 
 	query := `
 		SELECT f.id, f.owner_id, f.blob_hash, f.original_filename, f.mime_type, 
 		       f.size_bytes, f.is_public, f.download_count, f.tags, f.folder_id, 
-		       f.created_at, f.updated_at
+		       f.created_at, f.updated_at, f.deleted_at
 		FROM files f
-		WHERE f.id = $1 AND f.is_public = true`
+		WHERE f.id = $1 AND f.is_public = true AND f.deleted_at IS NULL`
 
 	var file models.File
 	err := s.db.QueryRow(query, fileID).Scan(
 		&file.ID, &file.OwnerID, &file.BlobHash, &file.OriginalFilename, &file.MimeType,
 		&file.SizeBytes, &file.IsPublic, &file.DownloadCount, pq.Array(&file.Tags), &file.FolderID,
-		&file.CreatedAt, &file.UpdatedAt,
+		&file.CreatedAt, &file.UpdatedAt, &file.DeletedAt,
 	)
 
 	if err != nil {
@@ -1631,11 +1644,11 @@ func (s *FileService) GetFolderByShareToken(token string) (*models.Folder, error
 
 	// Query to get folder and sharelink info together
 	query := `
-		SELECT f.id, f.owner_id, f.name, f.parent_id, f.created_at, f.updated_at,
+		SELECT f.id, f.owner_id, f.name, f.parent_id, f.created_at, f.updated_at, f.deleted_at,
 		       sl.expires_at, sl.is_active
 		FROM folders f
 		JOIN sharelinks sl ON f.id = sl.folder_id
-		WHERE sl.token = $1`
+		WHERE sl.token = $1 AND f.deleted_at IS NULL`
 
 	var folder models.Folder
 	var expiresAt *time.Time
@@ -1648,6 +1661,7 @@ func (s *FileService) GetFolderByShareToken(token string) (*models.Folder, error
 		&folder.ParentID,
 		&folder.CreatedAt,
 		&folder.UpdatedAt,
+		&folder.DeletedAt,
 		&expiresAt,
 		&isActive,
 	)
@@ -1670,6 +1684,295 @@ func (s *FileService) GetFolderByShareToken(token string) (*models.Folder, error
 	}
 
 	return &folder, nil
+}
+
+// TrashFile soft-deletes a file by setting deleted_at
+func (s *FileService) TrashFile(fileID, ownerID uuid.UUID) error {
+	if fileID == uuid.Nil {
+		return ErrInvalidFileID
+	}
+
+	query := `UPDATE files SET deleted_at = NOW() WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL`
+
+	result, err := s.db.Exec(query, fileID, ownerID)
+	if err != nil {
+		return fmt.Errorf("failed to trash file: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return ErrFileNotFound
+	}
+
+	return nil
+}
+
+// RestoreFile restores a soft-deleted file
+func (s *FileService) RestoreFile(fileID, ownerID uuid.UUID) (*models.File, error) {
+	if fileID == uuid.Nil {
+		return nil, ErrInvalidFileID
+	}
+
+	query := `
+		UPDATE files SET deleted_at = NULL
+		WHERE id = $1 AND owner_id = $2 AND deleted_at IS NOT NULL
+		RETURNING id, owner_id, blob_hash, original_filename, mime_type, size_bytes,
+		          is_public, download_count, tags, folder_id, created_at, updated_at, deleted_at
+	`
+
+	var file models.File
+	err := s.db.QueryRow(query, fileID, ownerID).Scan(
+		&file.ID, &file.OwnerID, &file.BlobHash, &file.OriginalFilename,
+		&file.MimeType, &file.SizeBytes, &file.IsPublic, &file.DownloadCount,
+		pq.Array(&file.Tags), &file.FolderID, &file.CreatedAt, &file.UpdatedAt, &file.DeletedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrFileNotFound
+		}
+		return nil, fmt.Errorf("failed to restore file: %w", err)
+	}
+
+	return &file, nil
+}
+
+// PermanentDeleteFile permanently deletes a trashed file (with blob cleanup)
+func (s *FileService) PermanentDeleteFile(fileID, ownerID uuid.UUID) error {
+	if fileID == uuid.Nil {
+		return ErrInvalidFileID
+	}
+
+	// Get the trashed file info for blob cleanup
+	var blobHash string
+	err := s.db.QueryRow(
+		`SELECT blob_hash FROM files WHERE id = $1 AND owner_id = $2 AND deleted_at IS NOT NULL`,
+		fileID, ownerID,
+	).Scan(&blobHash)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrFileNotFound
+		}
+		return fmt.Errorf("failed to get trashed file: %w", err)
+	}
+
+	// Start transaction for atomic deletion
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Delete the file record
+	result, err := tx.Exec(`DELETE FROM files WHERE id = $1 AND owner_id = $2 AND deleted_at IS NOT NULL`, fileID, ownerID)
+	if err != nil {
+		return fmt.Errorf("failed to permanently delete file: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return ErrFileNotFound
+	}
+
+	// Decrement blob reference count
+	_, err = tx.Exec(`UPDATE blobs SET ref_count = ref_count - 1 WHERE hash = $1 AND ref_count > 0`, blobHash)
+	if err != nil {
+		return fmt.Errorf("failed to decrement blob reference count: %w", err)
+	}
+
+	// Check if blob should be deleted
+	var refCount int
+	err = tx.QueryRow(`SELECT ref_count FROM blobs WHERE hash = $1`, blobHash).Scan(&refCount)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("failed to check blob reference count: %w", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// If blob has no more references, delete from storage
+	if refCount == 0 {
+		err = s.storageService.DeleteBlob(blobHash)
+		if err != nil {
+			fmt.Printf("Warning: failed to delete blob from storage: %v\n", err)
+		}
+	}
+
+	return nil
+}
+
+// GetTrashedFiles returns all trashed files for a user with pagination
+func (s *FileService) GetTrashedFiles(ownerID uuid.UUID, page, pageSize int) ([]*models.File, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+
+	// Get total count
+	var total int
+	err := s.db.QueryRow(
+		`SELECT COUNT(*) FROM files WHERE owner_id = $1 AND deleted_at IS NOT NULL`,
+		ownerID,
+	).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count trashed files: %w", err)
+	}
+
+	// Get paginated trashed files
+	query := `
+		SELECT id, owner_id, blob_hash, original_filename, mime_type, size_bytes,
+		       is_public, download_count, tags, folder_id, created_at, updated_at, deleted_at
+		FROM files
+		WHERE owner_id = $1 AND deleted_at IS NOT NULL
+		ORDER BY deleted_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := s.db.Query(query, ownerID, pageSize, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get trashed files: %w", err)
+	}
+	defer rows.Close()
+
+	var files []*models.File
+	for rows.Next() {
+		var file models.File
+		err := rows.Scan(
+			&file.ID, &file.OwnerID, &file.BlobHash, &file.OriginalFilename,
+			&file.MimeType, &file.SizeBytes, &file.IsPublic, &file.DownloadCount,
+			pq.Array(&file.Tags), &file.FolderID, &file.CreatedAt, &file.UpdatedAt, &file.DeletedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan trashed file: %w", err)
+		}
+		files = append(files, &file)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating trashed files: %w", err)
+	}
+
+	return files, total, nil
+}
+
+// EmptyTrashFiles permanently deletes all trashed files for a user
+func (s *FileService) EmptyTrashFiles(ownerID uuid.UUID) error {
+	// Get all trashed file info for blob cleanup
+	rows, err := s.db.Query(
+		`SELECT id, blob_hash FROM files WHERE owner_id = $1 AND deleted_at IS NOT NULL`,
+		ownerID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to get trashed files: %w", err)
+	}
+	defer rows.Close()
+
+	type fileBlob struct {
+		id       uuid.UUID
+		blobHash string
+	}
+	var fileBlobs []fileBlob
+	for rows.Next() {
+		var fb fileBlob
+		if err := rows.Scan(&fb.id, &fb.blobHash); err != nil {
+			return fmt.Errorf("failed to scan file blob: %w", err)
+		}
+		fileBlobs = append(fileBlobs, fb)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("error iterating file blobs: %w", err)
+	}
+
+	if len(fileBlobs) == 0 {
+		return nil // Nothing to delete
+	}
+
+	// Start transaction
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Delete all trashed files
+	_, err = tx.Exec(`DELETE FROM files WHERE owner_id = $1 AND deleted_at IS NOT NULL`, ownerID)
+	if err != nil {
+		return fmt.Errorf("failed to delete trashed files: %w", err)
+	}
+
+	// Decrement blob references and track for cleanup
+	var blobsToDelete []string
+	for _, fb := range fileBlobs {
+		_, err = tx.Exec(`UPDATE blobs SET ref_count = ref_count - 1 WHERE hash = $1 AND ref_count > 0`, fb.blobHash)
+		if err != nil {
+			return fmt.Errorf("failed to decrement blob ref_count: %w", err)
+		}
+
+		var refCount int
+		err = tx.QueryRow(`SELECT ref_count FROM blobs WHERE hash = $1`, fb.blobHash).Scan(&refCount)
+		if err != nil && err != sql.ErrNoRows {
+			return fmt.Errorf("failed to check blob ref_count: %w", err)
+		}
+		if refCount == 0 {
+			blobsToDelete = append(blobsToDelete, fb.blobHash)
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// Clean up storage for unreferenced blobs
+	for _, hash := range blobsToDelete {
+		if err := s.storageService.DeleteBlob(hash); err != nil {
+			fmt.Printf("Warning: failed to delete blob %s from storage: %v\n", hash, err)
+		}
+	}
+
+	return nil
+}
+
+// GetTrashedFileByID retrieves a trashed file by ID
+func (s *FileService) GetTrashedFileByID(fileID uuid.UUID) (*models.File, error) {
+	if fileID == uuid.Nil {
+		return nil, ErrInvalidFileID
+	}
+
+	var file models.File
+	query := `
+		SELECT id, owner_id, blob_hash, original_filename, mime_type, size_bytes,
+		       is_public, download_count, tags, folder_id, created_at, updated_at, deleted_at
+		FROM files 
+		WHERE id = $1 AND deleted_at IS NOT NULL
+	`
+
+	err := s.db.QueryRow(query, fileID).Scan(
+		&file.ID, &file.OwnerID, &file.BlobHash, &file.OriginalFilename,
+		&file.MimeType, &file.SizeBytes, &file.IsPublic, &file.DownloadCount,
+		pq.Array(&file.Tags), &file.FolderID, &file.CreatedAt, &file.UpdatedAt, &file.DeletedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrFileNotFound
+		}
+		return nil, fmt.Errorf("failed to get trashed file by ID: %w", err)
+	}
+
+	return &file, nil
 }
 
 // MoveFile moves a file to a different folder (or root if folderID is nil)

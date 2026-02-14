@@ -21,3 +21,11 @@ type Mutation struct {
 
 type Query struct {
 }
+
+type TrashResponse struct {
+	Files    []*models.File   `json:"files"`
+	Folders  []*models.Folder `json:"folders"`
+	Page     int              `json:"page"`
+	PageSize int              `json:"page_size"`
+	Total    int              `json:"total"`
+}

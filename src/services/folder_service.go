@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"securevault-backend/src/models"
 
@@ -43,9 +44,9 @@ func (fs *FolderService) ListFoldersOnly(ownerID uuid.UUID, parentID *uuid.UUID)
 		log.Printf("[FOLDER-SERVICE] Querying root level folders for ownerID: %s", ownerID)
 		log.Printf("[FOLDER-SERVICE] SQL: SELECT folders WHERE owner_id = %s AND parent_id IS NULL", ownerID)
 		query := fmt.Sprintf(`
-			SELECT root_f.id, root_f.owner_id, root_f.name, root_f.parent_id, root_f.created_at, root_f.updated_at
+			SELECT root_f.id, root_f.owner_id, root_f.name, root_f.parent_id, root_f.created_at, root_f.updated_at, root_f.deleted_at
 			FROM folders root_f 
-			WHERE root_f.owner_id = '%s' AND root_f.parent_id IS NULL
+			WHERE root_f.owner_id = '%s' AND root_f.parent_id IS NULL AND root_f.deleted_at IS NULL
 			ORDER BY root_f.name ASC
 		`, ownerID.String())
 		folderRows, err = fs.db.Query(query)
@@ -53,9 +54,9 @@ func (fs *FolderService) ListFoldersOnly(ownerID uuid.UUID, parentID *uuid.UUID)
 		log.Printf("[FOLDER-SERVICE] Querying child folders for parentID: %s", *parentID)
 		log.Printf("[FOLDER-SERVICE] SQL: SELECT folders WHERE owner_id = %s AND parent_id = %s", ownerID, *parentID)
 		query := fmt.Sprintf(`
-			SELECT child_f.id, child_f.owner_id, child_f.name, child_f.parent_id, child_f.created_at, child_f.updated_at
+			SELECT child_f.id, child_f.owner_id, child_f.name, child_f.parent_id, child_f.created_at, child_f.updated_at, child_f.deleted_at
 			FROM folders child_f 
-			WHERE child_f.owner_id = '%s' AND child_f.parent_id = '%s'
+			WHERE child_f.owner_id = '%s' AND child_f.parent_id = '%s' AND child_f.deleted_at IS NULL
 			ORDER BY child_f.name ASC
 		`, ownerID.String(), parentID.String())
 		folderRows, err = fs.db.Query(query)
@@ -73,7 +74,7 @@ func (fs *FolderService) ListFoldersOnly(ownerID uuid.UUID, parentID *uuid.UUID)
 		folder := &models.Folder{}
 		err := folderRows.Scan(
 			&folder.ID, &folder.OwnerID, &folder.Name,
-			&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt,
+			&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt, &folder.DeletedAt,
 		)
 		if err != nil {
 			log.Printf("[FOLDER-SERVICE] Failed to scan folder: %v", err)
@@ -103,7 +104,7 @@ func (fs *FolderService) CreateFolder(ownerID uuid.UUID, name string, parentID *
 	if parentID != nil {
 		var parentOwnerID uuid.UUID
 		err := fs.db.QueryRow(
-			"SELECT owner_id FROM folders WHERE id = $1",
+			"SELECT owner_id FROM folders WHERE id = $1 AND deleted_at IS NULL",
 			*parentID,
 		).Scan(&parentOwnerID)
 		if err != nil {
@@ -160,12 +161,12 @@ func (fs *FolderService) RenameFolder(ownerID, folderID uuid.UUID, newName strin
 	// Get current folder to verify ownership and get parent_id
 	var folder models.Folder
 	err := fs.db.QueryRow(`
-		SELECT id, owner_id, name, parent_id, created_at, updated_at
+		SELECT id, owner_id, name, parent_id, created_at, updated_at, deleted_at
 		FROM folders 
-		WHERE id = $1 AND owner_id = $2
+		WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL
 	`, folderID, ownerID).Scan(
 		&folder.ID, &folder.OwnerID, &folder.Name, 
-		&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt,
+		&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt, &folder.DeletedAt,
 	)
 	
 	if err != nil {
@@ -201,12 +202,12 @@ func (fs *FolderService) MoveFolder(ownerID, folderID uuid.UUID, newParentID *uu
 	// Get current folder to verify ownership
 	var folder models.Folder
 	err := fs.db.QueryRow(`
-		SELECT id, owner_id, name, parent_id, created_at, updated_at
+		SELECT id, owner_id, name, parent_id, created_at, updated_at, deleted_at
 		FROM folders 
-		WHERE id = $1 AND owner_id = $2
+		WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL
 	`, folderID, ownerID).Scan(
 		&folder.ID, &folder.OwnerID, &folder.Name, 
-		&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt,
+		&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt, &folder.DeletedAt,
 	)
 	
 	if err != nil {
@@ -226,7 +227,7 @@ func (fs *FolderService) MoveFolder(ownerID, folderID uuid.UUID, newParentID *uu
 		// Check if new parent exists and belongs to same owner
 		var parentOwnerID uuid.UUID
 		err := fs.db.QueryRow(
-			"SELECT owner_id FROM folders WHERE id = $1",
+			"SELECT owner_id FROM folders WHERE id = $1 AND deleted_at IS NULL",
 			*newParentID,
 		).Scan(&parentOwnerID)
 		if err != nil {
@@ -293,7 +294,7 @@ func (fs *FolderService) DeleteFolder(ownerID, folderID uuid.UUID, recursive boo
 	// Check if folder exists and is owned by user
 	var exists bool
 	err := fs.db.QueryRow(
-		"SELECT EXISTS(SELECT 1 FROM folders WHERE id = $1 AND owner_id = $2)",
+		"SELECT EXISTS(SELECT 1 FROM folders WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL)",
 		folderID, ownerID,
 	).Scan(&exists)
 	
@@ -309,9 +310,9 @@ func (fs *FolderService) DeleteFolder(ownerID, folderID uuid.UUID, recursive boo
 		var hasChildren bool
 		err = fs.db.QueryRow(`
 			SELECT EXISTS(
-				SELECT 1 FROM folders WHERE parent_id = $1
+				SELECT 1 FROM folders WHERE parent_id = $1 AND deleted_at IS NULL
 				UNION
-				SELECT 1 FROM files WHERE folder_id = $1
+				SELECT 1 FROM files WHERE folder_id = $1 AND deleted_at IS NULL
 			)
 		`, folderID).Scan(&hasChildren)
 		
@@ -378,9 +379,9 @@ func (fs *FolderService) GetFolderByID(ownerID, folderID uuid.UUID) (*models.Fol
 	
 	// Use hardcoded query to avoid prepared statement issues
 	query := fmt.Sprintf(`
-		SELECT folder_single.id, folder_single.owner_id, folder_single.name, folder_single.parent_id, folder_single.created_at, folder_single.updated_at
+		SELECT folder_single.id, folder_single.owner_id, folder_single.name, folder_single.parent_id, folder_single.created_at, folder_single.updated_at, folder_single.deleted_at
 		FROM folders folder_single 
-		WHERE folder_single.id = '%s' AND folder_single.owner_id = '%s'
+		WHERE folder_single.id = '%s' AND folder_single.owner_id = '%s' AND folder_single.deleted_at IS NULL
 	`, folderID.String(), ownerID.String())
 	
 	log.Printf("[FOLDER-SERVICE] GetFolderByID query: %s", query)
@@ -388,7 +389,7 @@ func (fs *FolderService) GetFolderByID(ownerID, folderID uuid.UUID) (*models.Fol
 	var folder models.Folder
 	err := fs.db.QueryRow(query).Scan(
 		&folder.ID, &folder.OwnerID, &folder.Name, 
-		&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt,
+		&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt, &folder.DeletedAt,
 	)
 	
 	if err != nil {
@@ -411,18 +412,19 @@ func (fs *FolderService) GetBreadcrumbs(ownerID, folderID uuid.UUID) ([]*models.
 	query := fmt.Sprintf(`
 		WITH RECURSIVE folder_path AS (
 			-- Base case: the target folder
-			SELECT breadcrumb_f.id, breadcrumb_f.owner_id, breadcrumb_f.name, breadcrumb_f.parent_id, breadcrumb_f.created_at, breadcrumb_f.updated_at, 0 as level
+			SELECT breadcrumb_f.id, breadcrumb_f.owner_id, breadcrumb_f.name, breadcrumb_f.parent_id, breadcrumb_f.created_at, breadcrumb_f.updated_at, breadcrumb_f.deleted_at, 0 as level
 			FROM folders breadcrumb_f 
-			WHERE breadcrumb_f.id = '%s' AND breadcrumb_f.owner_id = '%s'
+			WHERE breadcrumb_f.id = '%s' AND breadcrumb_f.owner_id = '%s' AND breadcrumb_f.deleted_at IS NULL
 			
 			UNION ALL
 			
 			-- Recursive case: parent folders
-			SELECT parent_f.id, parent_f.owner_id, parent_f.name, parent_f.parent_id, parent_f.created_at, parent_f.updated_at, fp.level + 1
+			SELECT parent_f.id, parent_f.owner_id, parent_f.name, parent_f.parent_id, parent_f.created_at, parent_f.updated_at, parent_f.deleted_at, fp.level + 1
 			FROM folders parent_f
 			INNER JOIN folder_path fp ON parent_f.id = fp.parent_id
+			WHERE parent_f.deleted_at IS NULL
 		)
-		SELECT breadcrumb_result.id, breadcrumb_result.owner_id, breadcrumb_result.name, breadcrumb_result.parent_id, breadcrumb_result.created_at, breadcrumb_result.updated_at
+		SELECT breadcrumb_result.id, breadcrumb_result.owner_id, breadcrumb_result.name, breadcrumb_result.parent_id, breadcrumb_result.created_at, breadcrumb_result.updated_at, breadcrumb_result.deleted_at
 		FROM folder_path breadcrumb_result
 		ORDER BY level DESC  -- Root first, target folder last
 	`, folderID.String(), ownerID.String())
@@ -441,7 +443,7 @@ func (fs *FolderService) GetBreadcrumbs(ownerID, folderID uuid.UUID) ([]*models.
 		folder := &models.Folder{}
 		err := rows.Scan(
 			&folder.ID, &folder.OwnerID, &folder.Name,
-			&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt,
+			&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt, &folder.DeletedAt,
 		)
 		if err != nil {
 			log.Printf("[FOLDER-SERVICE] GetBreadcrumbs scan failed: %v", err)
@@ -472,7 +474,7 @@ func (fs *FolderService) ComputeDepth(folderID uuid.UUID) (int, error) {
 			-- Base case: the target folder
 			SELECT id, parent_id, 0 as depth
 			FROM folders 
-			WHERE id = $1
+			WHERE id = $1 AND deleted_at IS NULL
 			
 			UNION ALL
 			
@@ -480,6 +482,7 @@ func (fs *FolderService) ComputeDepth(folderID uuid.UUID) (int, error) {
 			SELECT f.id, f.parent_id, fd.depth + 1
 			FROM folders f
 			INNER JOIN folder_depth fd ON f.id = fd.parent_id
+			WHERE f.deleted_at IS NULL
 		)
 		SELECT MAX(depth) FROM folder_depth
 	`, folderID).Scan(&depth)
@@ -502,7 +505,7 @@ func (fs *FolderService) ComputeSubtreeDepth(folderID uuid.UUID) (int, error) {
 			-- Base case: the folder itself
 			SELECT id, parent_id, 0 as depth
 			FROM folders 
-			WHERE id = $1
+			WHERE id = $1 AND deleted_at IS NULL
 			
 			UNION ALL
 			
@@ -510,6 +513,7 @@ func (fs *FolderService) ComputeSubtreeDepth(folderID uuid.UUID) (int, error) {
 			SELECT f.id, f.parent_id, s.depth + 1
 			FROM folders f
 			INNER JOIN subtree s ON f.parent_id = s.id
+			WHERE f.deleted_at IS NULL
 		)
 		SELECT MAX(depth) FROM subtree
 	`, folderID).Scan(&maxDepth)
@@ -533,7 +537,7 @@ func (fs *FolderService) IsDescendant(ancestorID, descendantID uuid.UUID) (bool,
 			-- Base case: the potential descendant
 			SELECT id, parent_id
 			FROM folders 
-			WHERE id = $1
+			WHERE id = $1 AND deleted_at IS NULL
 			
 			UNION ALL
 			
@@ -541,6 +545,7 @@ func (fs *FolderService) IsDescendant(ancestorID, descendantID uuid.UUID) (bool,
 			SELECT f.id, f.parent_id
 			FROM folders f
 			INNER JOIN folder_ancestors fa ON f.id = fa.parent_id
+			WHERE f.deleted_at IS NULL
 		)
 		SELECT EXISTS(
 			SELECT 1 FROM folder_ancestors WHERE id = $2
@@ -591,9 +596,9 @@ func (fs *FolderService) ListChildren(ownerID uuid.UUID, parentID *uuid.UUID, pa
 		// Root level folders
 		log.Printf("[FOLDER-SERVICE] Querying root level folders for ownerID: %s", ownerID)
 		folderRows, err = fs.db.Query(`
-			SELECT id, owner_id, name, parent_id, created_at, updated_at
+			SELECT id, owner_id, name, parent_id, created_at, updated_at, deleted_at
 			FROM folders 
-			WHERE owner_id = $1 AND parent_id IS NULL
+			WHERE owner_id = $1 AND parent_id IS NULL AND deleted_at IS NULL
 			ORDER BY name ASC
 		`, ownerID)
 	} else {
@@ -636,9 +641,9 @@ func (fs *FolderService) ListChildren(ownerID uuid.UUID, parentID *uuid.UUID, pa
 		// Get child folders
 		log.Printf("[FOLDER-SERVICE] SQL: SELECT child folders WHERE owner_id = $1 AND parent_id = $2 with ownerID=%s, parentID=%s", ownerID, *parentID)
 		folderRows, err = fs.db.Query(`
-			SELECT id, owner_id, name, parent_id, created_at, updated_at
+			SELECT id, owner_id, name, parent_id, created_at, updated_at, deleted_at
 			FROM folders 
-			WHERE owner_id = $1 AND parent_id = $2
+			WHERE owner_id = $1 AND parent_id = $2 AND deleted_at IS NULL
 			ORDER BY name ASC
 		`, ownerID, *parentID)
 	}
@@ -655,7 +660,7 @@ func (fs *FolderService) ListChildren(ownerID uuid.UUID, parentID *uuid.UUID, pa
 		folder := &models.Folder{}
 		err := folderRows.Scan(
 			&folder.ID, &folder.OwnerID, &folder.Name,
-			&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt,
+			&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt, &folder.DeletedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan folder: %w", err)
@@ -677,11 +682,11 @@ func (fs *FolderService) ListChildren(ownerID uuid.UUID, parentID *uuid.UUID, pa
 	
 	if parentID == nil {
 		// Count files in root (folder_id IS NULL)
-		countQuery = `SELECT COUNT(*) FROM files WHERE owner_id = $1 AND folder_id IS NULL`
+		countQuery = `SELECT COUNT(*) FROM files WHERE owner_id = $1 AND folder_id IS NULL AND deleted_at IS NULL`
 		countArgs = []interface{}{ownerID}
 	} else {
 		// Count files in specific folder
-		countQuery = `SELECT COUNT(*) FROM files WHERE owner_id = $1 AND folder_id = $2`
+		countQuery = `SELECT COUNT(*) FROM files WHERE owner_id = $1 AND folder_id = $2 AND deleted_at IS NULL`
 		countArgs = []interface{}{ownerID, *parentID}
 	}
 	
@@ -699,9 +704,9 @@ func (fs *FolderService) ListChildren(ownerID uuid.UUID, parentID *uuid.UUID, pa
 		// Get files in root (folder_id IS NULL)
 		fileQuery = `
 			SELECT id, owner_id, original_filename, mime_type, size_bytes, 
-				   is_public, download_count, tags, folder_id, created_at, updated_at
+				   is_public, download_count, tags, folder_id, created_at, updated_at, deleted_at
 			FROM files 
-			WHERE owner_id = $1 AND folder_id IS NULL
+			WHERE owner_id = $1 AND folder_id IS NULL AND deleted_at IS NULL
 			ORDER BY original_filename ASC
 			LIMIT $2 OFFSET $3
 		`
@@ -710,9 +715,9 @@ func (fs *FolderService) ListChildren(ownerID uuid.UUID, parentID *uuid.UUID, pa
 		// Get files in specific folder
 		fileQuery = `
 			SELECT id, owner_id, original_filename, mime_type, size_bytes, 
-				   is_public, download_count, tags, folder_id, created_at, updated_at
+				   is_public, download_count, tags, folder_id, created_at, updated_at, deleted_at
 			FROM files 
-			WHERE owner_id = $1 AND folder_id = $2
+			WHERE owner_id = $1 AND folder_id = $2 AND deleted_at IS NULL
 			ORDER BY original_filename ASC
 			LIMIT $3 OFFSET $4
 		`
@@ -730,7 +735,7 @@ func (fs *FolderService) ListChildren(ownerID uuid.UUID, parentID *uuid.UUID, pa
 		err := fileRows.Scan(
 			&file.ID, &file.OwnerID, &file.OriginalFilename, &file.MimeType,
 			&file.SizeBytes, &file.IsPublic, &file.DownloadCount, 
-			pq.Array(&file.Tags), &file.FolderID, &file.CreatedAt, &file.UpdatedAt,
+			pq.Array(&file.Tags), &file.FolderID, &file.CreatedAt, &file.UpdatedAt, &file.DeletedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan file: %w", err)
@@ -963,10 +968,10 @@ func (fs *FolderService) GetFolderByShareToken(token string) (*models.Folder, er
 	// Get sharelink by token
 	query := `
 		SELECT sl.id, sl.folder_id, sl.token, sl.expires_at, sl.is_active, sl.download_count, sl.created_at,
-			   f.id, f.owner_id, f.name, f.parent_id, f.created_at, f.updated_at
+			   f.id, f.owner_id, f.name, f.parent_id, f.created_at, f.updated_at, f.deleted_at
 		FROM sharelinks sl
 		JOIN folders f ON sl.folder_id = f.id
-		WHERE sl.token = $1 AND sl.is_active = true
+		WHERE sl.token = $1 AND sl.is_active = true AND f.deleted_at IS NULL
 	`
 
 	var shareLink models.ShareLink
@@ -986,6 +991,7 @@ func (fs *FolderService) GetFolderByShareToken(token string) (*models.Folder, er
 		&folder.ParentID,
 		&folder.CreatedAt,
 		&folder.UpdatedAt,
+		&folder.DeletedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -1001,6 +1007,298 @@ func (fs *FolderService) GetFolderByShareToken(token string) (*models.Folder, er
 	}
 
 	return &folder, nil
+}
+
+// TrashFolder soft-deletes a folder. If recursive, also soft-deletes all child folders and files.
+func (fs *FolderService) TrashFolder(folderID, ownerID uuid.UUID, recursive bool) error {
+	// Verify folder exists and is owned by user
+	_, err := fs.GetFolderByID(ownerID, folderID)
+	if err != nil {
+		return err
+	}
+
+	tx, err := fs.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	now := time.Now().UTC()
+
+	if recursive {
+		// Soft-delete all files in the folder tree
+		_, err = tx.Exec(`
+			WITH RECURSIVE folder_tree AS (
+				SELECT id FROM folders WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL
+				UNION ALL
+				SELECT f.id FROM folders f
+				INNER JOIN folder_tree ft ON f.parent_id = ft.id
+				WHERE f.deleted_at IS NULL
+			)
+			UPDATE files SET deleted_at = $3
+			WHERE folder_id IN (SELECT id FROM folder_tree) AND owner_id = $2 AND deleted_at IS NULL
+		`, folderID, ownerID, now)
+		if err != nil {
+			return fmt.Errorf("failed to trash files in folder tree: %w", err)
+		}
+
+		// Soft-delete all descendant folders
+		_, err = tx.Exec(`
+			WITH RECURSIVE folder_tree AS (
+				SELECT id FROM folders WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL
+				UNION ALL
+				SELECT f.id FROM folders f
+				INNER JOIN folder_tree ft ON f.parent_id = ft.id
+				WHERE f.deleted_at IS NULL
+			)
+			UPDATE folders SET deleted_at = $3
+			WHERE id IN (SELECT id FROM folder_tree)
+		`, folderID, ownerID, now)
+		if err != nil {
+			return fmt.Errorf("failed to trash folder tree: %w", err)
+		}
+	} else {
+		// Just soft-delete the folder itself
+		result, err := tx.Exec(
+			`UPDATE folders SET deleted_at = $1 WHERE id = $2 AND owner_id = $3 AND deleted_at IS NULL`,
+			now, folderID, ownerID,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to trash folder: %w", err)
+		}
+		rowsAffected, _ := result.RowsAffected()
+		if rowsAffected == 0 {
+			return fmt.Errorf("folder not found")
+		}
+	}
+
+	return tx.Commit()
+}
+
+// RestoreFolder restores a soft-deleted folder and all children that were trashed at the same time
+func (fs *FolderService) RestoreFolder(folderID, ownerID uuid.UUID) (*models.Folder, error) {
+	// Get the trashed folder and its deleted_at timestamp
+	var folder models.Folder
+	var deletedAt time.Time
+	err := fs.db.QueryRow(`
+		SELECT id, owner_id, name, parent_id, created_at, updated_at, deleted_at
+		FROM folders
+		WHERE id = $1 AND owner_id = $2 AND deleted_at IS NOT NULL
+	`, folderID, ownerID).Scan(
+		&folder.ID, &folder.OwnerID, &folder.Name,
+		&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt, &deletedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("trashed folder not found")
+		}
+		return nil, fmt.Errorf("failed to get trashed folder: %w", err)
+	}
+
+	tx, err := fs.db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Restore the folder and all children that were trashed at the same timestamp
+	_, err = tx.Exec(`
+		WITH RECURSIVE folder_tree AS (
+			SELECT id FROM folders WHERE id = $1
+			UNION ALL
+			SELECT f.id FROM folders f
+			INNER JOIN folder_tree ft ON f.parent_id = ft.id
+			WHERE f.deleted_at = $2
+		)
+		UPDATE folders SET deleted_at = NULL
+		WHERE id IN (SELECT id FROM folder_tree) AND deleted_at = $2
+	`, folderID, deletedAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to restore folder tree: %w", err)
+	}
+
+	// Restore files in the folder tree that were trashed at the same time
+	_, err = tx.Exec(`
+		WITH RECURSIVE folder_tree AS (
+			SELECT id FROM folders WHERE id = $1
+			UNION ALL
+			SELECT f.id FROM folders f
+			INNER JOIN folder_tree ft ON f.parent_id = ft.id
+			WHERE f.deleted_at IS NULL
+		)
+		UPDATE files SET deleted_at = NULL
+		WHERE folder_id IN (SELECT id FROM folder_tree) AND owner_id = $2 AND deleted_at = $3
+	`, folderID, ownerID, deletedAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to restore files in folder tree: %w", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("failed to commit restore: %w", err)
+	}
+
+	// Return the restored folder
+	return fs.GetFolderByID(ownerID, folderID)
+}
+
+// PermanentDeleteFolder permanently deletes a trashed folder and its tree with blob cleanup
+func (fs *FolderService) PermanentDeleteFolder(folderID, ownerID uuid.UUID) error {
+	// Verify the folder is trashed
+	var exists bool
+	err := fs.db.QueryRow(
+		`SELECT EXISTS(SELECT 1 FROM folders WHERE id = $1 AND owner_id = $2 AND deleted_at IS NOT NULL)`,
+		folderID, ownerID,
+	).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("failed to check folder: %w", err)
+	}
+	if !exists {
+		return fmt.Errorf("trashed folder not found")
+	}
+
+	// Delete files in the trashed folder tree using file service for blob cleanup
+	if fs.fileService != nil {
+		// Get all files in the folder tree (including trashed files)
+		rows, err := fs.db.Query(`
+			WITH RECURSIVE folder_tree AS (
+				SELECT id FROM folders WHERE id = $1 AND owner_id = $2
+				UNION ALL
+				SELECT f.id FROM folders f
+				INNER JOIN folder_tree ft ON f.parent_id = ft.id
+			)
+			SELECT files.id FROM files
+			WHERE files.owner_id = $2 AND files.folder_id IN (SELECT id FROM folder_tree)
+		`, folderID, ownerID)
+		if err != nil {
+			return fmt.Errorf("failed to get files in folder tree: %w", err)
+		}
+		defer rows.Close()
+
+		var fileIDs []uuid.UUID
+		for rows.Next() {
+			var fileID uuid.UUID
+			if err := rows.Scan(&fileID); err != nil {
+				return fmt.Errorf("failed to scan file ID: %w", err)
+			}
+			fileIDs = append(fileIDs, fileID)
+		}
+		rows.Close()
+
+		// Permanently delete each file with blob cleanup
+		for _, fID := range fileIDs {
+			if err := fs.fileService.PermanentDeleteFile(fID, ownerID); err != nil {
+				log.Printf("[FOLDER-SERVICE] Warning: failed to permanently delete file %s: %v", fID, err)
+			}
+		}
+	}
+
+	// Delete the folder tree
+	_, err = fs.db.Exec(`
+		WITH RECURSIVE folder_tree AS (
+			SELECT id FROM folders WHERE id = $1 AND owner_id = $2
+			UNION ALL
+			SELECT f.id FROM folders f
+			INNER JOIN folder_tree ft ON f.parent_id = ft.id
+		)
+		DELETE FROM folders WHERE id IN (SELECT id FROM folder_tree)
+	`, folderID, ownerID)
+	if err != nil {
+		return fmt.Errorf("failed to delete folder tree: %w", err)
+	}
+
+	return nil
+}
+
+// GetTrashedFolders returns all top-level trashed folders for a user
+func (fs *FolderService) GetTrashedFolders(ownerID uuid.UUID, page, pageSize int) ([]*models.Folder, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+
+	// Count total trashed folders
+	var total int
+	err := fs.db.QueryRow(
+		`SELECT COUNT(*) FROM folders WHERE owner_id = $1 AND deleted_at IS NOT NULL`,
+		ownerID,
+	).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count trashed folders: %w", err)
+	}
+
+	// Get paginated trashed folders
+	query := `
+		SELECT id, owner_id, name, parent_id, created_at, updated_at, deleted_at
+		FROM folders
+		WHERE owner_id = $1 AND deleted_at IS NOT NULL
+		ORDER BY deleted_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := fs.db.Query(query, ownerID, pageSize, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get trashed folders: %w", err)
+	}
+	defer rows.Close()
+
+	var folders []*models.Folder
+	for rows.Next() {
+		folder := &models.Folder{}
+		err := rows.Scan(
+			&folder.ID, &folder.OwnerID, &folder.Name,
+			&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt, &folder.DeletedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan trashed folder: %w", err)
+		}
+		folders = append(folders, folder)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating trashed folders: %w", err)
+	}
+
+	return folders, total, nil
+}
+
+// EmptyTrashFolders permanently deletes all trashed folders for a user
+func (fs *FolderService) EmptyTrashFolders(ownerID uuid.UUID) error {
+	// Get all trashed folders
+	rows, err := fs.db.Query(
+		`SELECT id FROM folders WHERE owner_id = $1 AND deleted_at IS NOT NULL`,
+		ownerID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to get trashed folders: %w", err)
+	}
+	defer rows.Close()
+
+	var folderIDs []uuid.UUID
+	for rows.Next() {
+		var fID uuid.UUID
+		if err := rows.Scan(&fID); err != nil {
+			return fmt.Errorf("failed to scan folder ID: %w", err)
+		}
+		folderIDs = append(folderIDs, fID)
+	}
+	rows.Close()
+
+	if len(folderIDs) == 0 {
+		return nil
+	}
+
+	// Permanently delete each folder with blob cleanup
+	for _, fID := range folderIDs {
+		if err := fs.PermanentDeleteFolder(fID, ownerID); err != nil {
+			log.Printf("[FOLDER-SERVICE] Warning: failed to permanently delete folder %s: %v", fID, err)
+		}
+	}
+
+	return nil
 }
 
 // deleteFilesInFolderTree deletes all files within a folder tree using the file service
@@ -1064,9 +1362,9 @@ func (fs *FolderService) GetAllFolders(ownerID uuid.UUID) ([]*models.Folder, err
 	log.Printf("[FOLDER-SERVICE] GetAllFolders called - ownerID: %s", ownerID)
 	
 	query := `
-		SELECT id, owner_id, name, parent_id, created_at, updated_at
+		SELECT id, owner_id, name, parent_id, created_at, updated_at, deleted_at
 		FROM folders 
-		WHERE owner_id = $1
+		WHERE owner_id = $1 AND deleted_at IS NULL
 		ORDER BY parent_id NULLS FIRST, name ASC
 	`
 
@@ -1082,7 +1380,7 @@ func (fs *FolderService) GetAllFolders(ownerID uuid.UUID) ([]*models.Folder, err
 		folder := &models.Folder{}
 		err := rows.Scan(
 			&folder.ID, &folder.OwnerID, &folder.Name,
-			&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt,
+			&folder.ParentID, &folder.CreatedAt, &folder.UpdatedAt, &folder.DeletedAt,
 		)
 		if err != nil {
 			log.Printf("[FOLDER-SERVICE] Failed to scan folder: %v", err)
@@ -1121,15 +1419,16 @@ func (fs *FolderService) GetFolderTreeByID(ownerID, folderID uuid.UUID) (*Folder
 	folderQuery := `
 		WITH RECURSIVE folder_tree AS (
 			-- Base case: the root folder
-			SELECT id, name, parent_id, owner_id, created_at, updated_at, 0 as depth
-			FROM folders WHERE id = $1 AND owner_id = $2
+			SELECT id, name, parent_id, owner_id, created_at, updated_at, deleted_at, 0 as depth
+			FROM folders WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL
 			UNION ALL
 			-- Recursive case: child folders
-			SELECT f.id, f.name, f.parent_id, f.owner_id, f.created_at, f.updated_at, ft.depth + 1
+			SELECT f.id, f.name, f.parent_id, f.owner_id, f.created_at, f.updated_at, f.deleted_at, ft.depth + 1
 			FROM folders f
 			INNER JOIN folder_tree ft ON f.parent_id = ft.id
+			WHERE f.deleted_at IS NULL
 		)
-		SELECT id, name, parent_id, owner_id, created_at, updated_at
+		SELECT id, name, parent_id, owner_id, created_at, updated_at, deleted_at
 		FROM folder_tree
 		ORDER BY depth, name`
 
@@ -1147,7 +1446,7 @@ func (fs *FolderService) GetFolderTreeByID(ownerID, folderID uuid.UUID) (*Folder
 		var folder models.Folder
 		err := folderRows.Scan(
 			&folder.ID, &folder.Name, &folder.ParentID, &folder.OwnerID,
-			&folder.CreatedAt, &folder.UpdatedAt,
+			&folder.CreatedAt, &folder.UpdatedAt, &folder.DeletedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan folder: %w", err)
@@ -1160,17 +1459,18 @@ func (fs *FolderService) GetFolderTreeByID(ownerID, folderID uuid.UUID) (*Folder
 	fileQuery := `
 		WITH RECURSIVE folder_tree AS (
 			-- Base case: the root folder
-			SELECT id FROM folders WHERE id = $1 AND owner_id = $2
+			SELECT id FROM folders WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL
 			UNION ALL
 			-- Recursive case: child folders
 			SELECT f.id FROM folders f
 			INNER JOIN folder_tree ft ON f.parent_id = ft.id
+			WHERE f.deleted_at IS NULL
 		)
 		SELECT files.id, files.owner_id, files.blob_hash, files.original_filename, 
 		       files.mime_type, files.size_bytes, files.is_public, files.download_count, 
-		       files.tags, files.folder_id, files.created_at, files.updated_at
+		       files.tags, files.folder_id, files.created_at, files.updated_at, files.deleted_at
 		FROM files
-		WHERE files.folder_id IN (SELECT id FROM folder_tree)
+		WHERE files.folder_id IN (SELECT id FROM folder_tree) AND files.deleted_at IS NULL
 		ORDER BY files.folder_id, files.original_filename`
 
 	fileRows, err := fs.db.Query(fileQuery, folderID, ownerID)
@@ -1187,7 +1487,7 @@ func (fs *FolderService) GetFolderTreeByID(ownerID, folderID uuid.UUID) (*Folder
 		err := fileRows.Scan(
 			&file.ID, &file.OwnerID, &file.BlobHash, &file.OriginalFilename,
 			&file.MimeType, &file.SizeBytes, &file.IsPublic, &file.DownloadCount,
-			pq.Array(&file.Tags), &file.FolderID, &file.CreatedAt, &file.UpdatedAt,
+			pq.Array(&file.Tags), &file.FolderID, &file.CreatedAt, &file.UpdatedAt, &file.DeletedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan file: %w", err)
@@ -1249,7 +1549,7 @@ func (fs *FolderService) getAllFilesInFolderRecursive(folderID uuid.UUID, userID
 			-- Base case: the target folder
 			SELECT id, parent_id
 			FROM folders 
-			WHERE id = $1 AND owner_id = $2
+			WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL
 			
 			UNION ALL
 			
@@ -1257,12 +1557,13 @@ func (fs *FolderService) getAllFilesInFolderRecursive(folderID uuid.UUID, userID
 			SELECT f.id, f.parent_id
 			FROM folders f
 			INNER JOIN folder_tree ft ON f.parent_id = ft.id
-			WHERE f.owner_id = $2
+			WHERE f.owner_id = $2 AND f.deleted_at IS NULL
 		)
 		SELECT DISTINCT f.id
 		FROM files f
 		WHERE f.folder_id IN (SELECT id FROM folder_tree)
 		  AND f.owner_id = $2
+		  AND f.deleted_at IS NULL
 		ORDER BY f.id
 	`
 

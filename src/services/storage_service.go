@@ -380,14 +380,14 @@ func (s *StorageService) storeBlobToPath(tempFile *os.File, hash string) error {
 	}
 
 	// Use local file storage as fallback
-	// Ensure storage directory exists
-	err = os.MkdirAll(s.storagePath, 0755)
-	if err != nil {
-		return fmt.Errorf("failed to create storage directory: %w", err)
-	}
-
 	// Create final path using hash
 	finalPath := s.getBlobPath(hash)
+
+	// Ensure the parent directory for the blob file exists (e.g. storage/d7/)
+	err = os.MkdirAll(filepath.Dir(finalPath), 0755)
+	if err != nil {
+		return fmt.Errorf("failed to create storage subdirectory: %w", err)
+	}
 
 	// Create final file
 	finalFile, err := os.Create(finalPath)

@@ -502,6 +502,124 @@ func (r *mutationResolver) DeleteFolderShareLink(ctx context.Context, id uuid.UU
 	return true, nil
 }
 
+// TrashFile is the resolver for the trashFile field.
+func (r *mutationResolver) TrashFile(ctx context.Context, id uuid.UUID) (bool, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	err = r.FileService.TrashFile(id, userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to trash file: %w", err)
+	}
+
+	return true, nil
+}
+
+// TrashFolder is the resolver for the trashFolder field.
+func (r *mutationResolver) TrashFolder(ctx context.Context, id uuid.UUID, recursive *bool) (bool, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// Default recursive to true
+	rec := true
+	if recursive != nil {
+		rec = *recursive
+	}
+
+	err = r.FolderService.TrashFolder(id, userID, rec)
+	if err != nil {
+		return false, fmt.Errorf("failed to trash folder: %w", err)
+	}
+
+	return true, nil
+}
+
+// RestoreFile is the resolver for the restoreFile field.
+func (r *mutationResolver) RestoreFile(ctx context.Context, id uuid.UUID) (*models.File, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := r.FileService.RestoreFile(id, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to restore file: %w", err)
+	}
+
+	return file, nil
+}
+
+// RestoreFolder is the resolver for the restoreFolder field.
+func (r *mutationResolver) RestoreFolder(ctx context.Context, id uuid.UUID) (*models.Folder, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	folder, err := r.FolderService.RestoreFolder(id, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to restore folder: %w", err)
+	}
+
+	return folder, nil
+}
+
+// PermanentDeleteFile is the resolver for the permanentDeleteFile field.
+func (r *mutationResolver) PermanentDeleteFile(ctx context.Context, id uuid.UUID) (bool, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	err = r.FileService.PermanentDeleteFile(id, userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to permanently delete file: %w", err)
+	}
+
+	return true, nil
+}
+
+// PermanentDeleteFolder is the resolver for the permanentDeleteFolder field.
+func (r *mutationResolver) PermanentDeleteFolder(ctx context.Context, id uuid.UUID) (bool, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	err = r.FolderService.PermanentDeleteFolder(id, userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to permanently delete folder: %w", err)
+	}
+
+	return true, nil
+}
+
+// EmptyTrash is the resolver for the emptyTrash field.
+func (r *mutationResolver) EmptyTrash(ctx context.Context) (bool, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// Empty trashed files
+	err = r.FileService.EmptyTrashFiles(userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to empty trash files: %w", err)
+	}
+
+	// Empty trashed folders
+	err = r.FolderService.EmptyTrashFolders(userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to empty trash folders: %w", err)
+	}
+
+	return true, nil
+}
+
 // AdminDeleteFile is the resolver for the adminDeleteFile field.
 func (r *mutationResolver) AdminDeleteFile(ctx context.Context, id uuid.UUID) (bool, error) {
 	// Extract user ID from context and verify admin role
@@ -973,6 +1091,44 @@ func (r *queryResolver) PublicFolder(ctx context.Context, token string, page *in
 	}
 
 	return response, nil
+}
+
+// Trash is the resolver for the trash field.
+func (r *queryResolver) Trash(ctx context.Context, page *int, pageSize *int) (*model.TrashResponse, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set defaults
+	p := 1
+	ps := 20
+	if page != nil && *page > 0 {
+		p = *page
+	}
+	if pageSize != nil && *pageSize > 0 {
+		ps = *pageSize
+	}
+
+	// Get trashed files
+	files, totalFiles, err := r.FileService.GetTrashedFiles(userID, p, ps)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trashed files: %w", err)
+	}
+
+	// Get trashed folders
+	folders, totalFolders, err := r.FolderService.GetTrashedFolders(userID, p, ps)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trashed folders: %w", err)
+	}
+
+	return &model.TrashResponse{
+		Files:    files,
+		Folders:  folders,
+		Page:     p,
+		PageSize: ps,
+		Total:    totalFiles + totalFolders,
+	}, nil
 }
 
 // AdminFiles is the resolver for the adminFiles field.

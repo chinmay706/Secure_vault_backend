@@ -14,6 +14,7 @@ type Folder struct {
 	ParentID  *uuid.UUID `json:"parent_id,omitempty" db:"parent_id"`
 	CreatedAt time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
 }
 
 // NewFolder creates a new folder with the given parameters
