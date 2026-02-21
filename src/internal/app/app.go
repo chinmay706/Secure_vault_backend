@@ -36,6 +36,7 @@ type Handlers struct {
 	Public         *api.PublicHandlers
 	Stats          *api.StatsHandlers
 	Admin          *api.AdminHandlers
+	Summary        *api.SummaryHandlers
 }
 
 // NewApp creates and configures a new App instance
@@ -86,11 +87,18 @@ func NewApp() (*App, error) {
 			aiDailyLimit = 100
 		}
 	}
-	aiTagService := services.NewAiTagService(database.DB, storageService, aiProvider, geminiAPIKey, groqAPIKey, aiDailyLimit)
+	groqModel := os.Getenv("GROQ_MODEL") // defaults to llama-3.3-70b-versatile if empty
+	aiTagService := services.NewAiTagService(database.DB, storageService, aiProvider, geminiAPIKey, groqAPIKey, groqModel, aiDailyLimit)
 	if aiTagService.IsEnabled() {
 		log.Printf("AI tag generation enabled (provider: %s, daily limit: %d)", aiTagService.Provider(), aiDailyLimit)
 	} else {
 		log.Println("AI tag generation disabled (no GEMINI_API_KEY or GROQ_API_KEY set)")
+	}
+
+	// Initialize AI summary service
+	aiSummaryService := services.NewAiSummaryService(database.DB, storageService, groqAPIKey, groqModel)
+	if aiSummaryService.IsEnabled() {
+		log.Println("AI summary service enabled")
 	}
 
 	// Initialize limits middleware
@@ -106,6 +114,7 @@ func NewApp() (*App, error) {
 		Public:         api.NewPublicHandlers(fileService, folderService, storageService),
 		Stats:          api.NewStatsHandlers(statsService, authService),
 		Admin:          api.NewAdminHandlers(statsService, fileService, authService),
+		Summary:        api.NewSummaryHandlers(aiSummaryService, authService),
 	}
 
 	app := &App{
@@ -164,7 +173,10 @@ func NewTestApp() (*App, error) {
 	folderService.SetFileService(fileService)
 
 	// Initialize AI tag service (no API key in test)
-	aiTagService := services.NewAiTagService(database.DB, storageService, "", "", "", 100)
+	aiTagService := services.NewAiTagService(database.DB, storageService, "", "", "", "", 100)
+
+	// Initialize AI summary service (no API key in test)
+	aiSummaryService := services.NewAiSummaryService(database.DB, storageService, "", "")
 
 	// Initialize limits middleware for testing
 	quotaService := &middleware.DefaultQuotaService{} // Using default quota service
@@ -179,6 +191,7 @@ func NewTestApp() (*App, error) {
 		Public:         api.NewPublicHandlers(fileService, folderService, storageService),
 		Stats:          api.NewStatsHandlers(statsService, authService),
 		Admin:          api.NewAdminHandlers(statsService, fileService, authService),
+		Summary:        api.NewSummaryHandlers(aiSummaryService, authService),
 	}
 
 	app := &App{
@@ -265,6 +278,9 @@ func (a *App) setupRoutes(authService *services.AuthService, fileService *servic
 	api.HandleFunc("/files/{id}/ai-tags", a.handlers.Files.HandleGetAiTags).Methods("GET", "OPTIONS")
 	api.HandleFunc("/files/{id}/ai-tags", a.handlers.Files.HandleTriggerAiTags).Methods("POST", "OPTIONS")
 	api.HandleFunc("/files/{id}/ai-describe", a.handlers.Files.HandleAiDescribe).Methods("POST", "OPTIONS")
+	api.HandleFunc("/files/{id}/ai-summary", a.handlers.Summary.HandleGetAiSummary).Methods("GET", "OPTIONS")
+	api.HandleFunc("/files/{id}/ai-summary", a.handlers.Summary.HandleGenerateAiSummary).Methods("POST", "OPTIONS")
+	api.HandleFunc("/files/{id}/ai-summary/refine", a.handlers.Summary.HandleRefineAiSummary).Methods("POST", "OPTIONS")
 	
 	// Folder routes
 	api.HandleFunc("/folders", a.handlers.Folders.HandleCreateFolder).Methods("POST", "OPTIONS")

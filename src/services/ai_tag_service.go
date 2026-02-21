@@ -59,13 +59,14 @@ type AiTagService struct {
 	aiProvider     string // "gemini" or "groq"
 	geminiAPIKey   string
 	groqAPIKey     string
+	groqModel      string
 	httpClient     *http.Client
 	dailyLimit     int
 }
 
 // NewAiTagService creates a new AiTagService.
 // aiProvider should be "gemini" or "groq". Falls back to whichever key is set.
-func NewAiTagService(db *sql.DB, storageService *StorageService, aiProvider, geminiAPIKey, groqAPIKey string, dailyLimit int) *AiTagService {
+func NewAiTagService(db *sql.DB, storageService *StorageService, aiProvider, geminiAPIKey, groqAPIKey, groqModel string, dailyLimit int) *AiTagService {
 	if dailyLimit <= 0 {
 		dailyLimit = 100
 	}
@@ -80,12 +81,17 @@ func NewAiTagService(db *sql.DB, storageService *StorageService, aiProvider, gem
 		}
 	}
 
+	if groqModel == "" {
+		groqModel = defaultGroqTextModel
+	}
+
 	return &AiTagService{
 		db:             db,
 		storageService: storageService,
 		aiProvider:     aiProvider,
 		geminiAPIKey:   geminiAPIKey,
 		groqAPIKey:     groqAPIKey,
+		groqModel:      groqModel,
 		dailyLimit:     dailyLimit,
 		httpClient: &http.Client{
 			Timeout: 60 * time.Second,
@@ -119,10 +125,10 @@ const (
 	bulkDelayBetweenFiles  = 1500 * time.Millisecond
 )
 
-// Groq model constants
+// Groq model defaults (used when GROQ_MODEL env var is not set)
 const (
-	groqTextModel   = "llama-3.3-70b-versatile"
-	groqVisionModel = "llama-3.2-11b-vision-preview"
+	defaultGroqTextModel   = "groq/compound-mini"
+	defaultGroqVisionModel = "llama-3.2-11b-vision-preview"
 )
 
 // ============================================================
@@ -655,9 +661,9 @@ func (s *AiTagService) callGroqAPI(prompt, base64Image, imageMimeType string) (*
 	apiURL := "https://api.groq.com/openai/v1/chat/completions"
 
 	// Choose model based on whether we have an image
-	model := groqTextModel
+	model := s.groqModel
 	if base64Image != "" {
-		model = groqVisionModel
+		model = defaultGroqVisionModel
 	}
 
 	// Build message content
