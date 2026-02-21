@@ -17,11 +17,11 @@ import (
 )
 
 // NewGraphQLHandler creates the GraphQL HTTP handler with services
-func NewGraphQLHandler(authService *services.AuthService, fileService *services.FileService, folderService *services.FolderService, statsService *services.StatsService, storageService *services.StorageService) http.Handler {
+func NewGraphQLHandler(authService *services.AuthService, fileService *services.FileService, folderService *services.FolderService, statsService *services.StatsService, storageService *services.StorageService, aiTagService *services.AiTagService) http.Handler {
 	log.Printf("[GQL-SERVER] Initializing GraphQL handler with services")
 	
 	// Create resolver with services
-	resolver := graph.NewResolver(authService, fileService, folderService, statsService, storageService)
+	resolver := graph.NewResolver(authService, fileService, folderService, statsService, storageService, aiTagService)
 
 	// Create GraphQL server
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))

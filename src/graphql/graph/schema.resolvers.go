@@ -620,6 +620,92 @@ func (r *mutationResolver) EmptyTrash(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
+// UpdateFileTags is the resolver for the updateFileTags field.
+func (r *mutationResolver) UpdateFileTags(ctx context.Context, fileID uuid.UUID, tags []string) (*models.File, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := r.FileService.UpdateFileTags(fileID, userID, tags)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update file tags: %w", err)
+	}
+
+	return file, nil
+}
+
+// GenerateAiTags is the resolver for the generateAiTags field.
+func (r *mutationResolver) GenerateAiTags(ctx context.Context, fileID uuid.UUID) (*model.AiTagJob, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.AiTagService == nil || !r.AiTagService.IsEnabled() {
+		return nil, fmt.Errorf("AI tag generation is not enabled")
+	}
+
+	// Trigger async generation
+	go r.AiTagService.GenerateTagsForFile(fileID, userID)
+
+	// Return a pending job status
+	return &model.AiTagJob{
+		FileID:           fileID,
+		Status:           "processing",
+		SuggestedTags:    []string{},
+		ConfidenceScores: []float64{},
+		AiDescription:    "",
+	}, nil
+}
+
+// GenerateAiDescription is the resolver for the generateAiDescription field.
+func (r *mutationResolver) GenerateAiDescription(ctx context.Context, fileID uuid.UUID) (*model.AiDescriptionResult, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.AiTagService == nil || !r.AiTagService.IsEnabled() {
+		return nil, fmt.Errorf("AI service is not enabled")
+	}
+
+	result, err := r.AiTagService.GenerateDescription(fileID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate AI description: %w", err)
+	}
+
+	return &model.AiDescriptionResult{
+		FileID:      result.FileID,
+		Description: result.Description,
+		Status:      result.Status,
+	}, nil
+}
+
+// BulkGenerateAiTags is the resolver for the bulkGenerateAiTags field.
+func (r *mutationResolver) BulkGenerateAiTags(ctx context.Context, fileIds []uuid.UUID) (*model.BulkAiTagResult, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.AiTagService == nil || !r.AiTagService.IsEnabled() {
+		return nil, fmt.Errorf("AI service is not enabled")
+	}
+
+	result, err := r.AiTagService.BulkGenerateTags(fileIds, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to bulk generate AI tags: %w", err)
+	}
+
+	return &model.BulkAiTagResult{
+		QueuedCount:  result.QueuedCount,
+		SkippedCount: result.SkippedCount,
+		Status:       result.Status,
+		Message:      result.Message,
+	}, nil
+}
+
 // AdminDeleteFile is the resolver for the adminDeleteFile field.
 func (r *mutationResolver) AdminDeleteFile(ctx context.Context, id uuid.UUID) (bool, error) {
 	// Extract user ID from context and verify admin role
@@ -1224,6 +1310,184 @@ func (r *queryResolver) AdminStats(ctx context.Context) (*api.AdminStatsResponse
 	}
 
 	return adminResponse, nil
+}
+
+// AllTags is the resolver for the allTags field.
+func (r *queryResolver) AllTags(ctx context.Context) ([]*model.FileTagInfo, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tags, err := r.FileService.GetAllTagsForUser(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all tags: %w", err)
+	}
+
+	result := make([]*model.FileTagInfo, len(tags))
+	for i, t := range tags {
+		result[i] = &model.FileTagInfo{
+			Name:          t.Name,
+			IsAiGenerated: t.IsAiGenerated,
+			Confidence:    t.Confidence,
+			Count:         t.FileCount,
+		}
+	}
+
+	return result, nil
+}
+
+// PopularTags is the resolver for the popularTags field.
+func (r *queryResolver) PopularTags(ctx context.Context, limit *int) ([]*model.FileTagInfo, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	lim := 10
+	if limit != nil && *limit > 0 {
+		lim = *limit
+	}
+
+	tags, err := r.FileService.GetPopularTags(userID, lim)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get popular tags: %w", err)
+	}
+
+	result := make([]*model.FileTagInfo, len(tags))
+	for i, t := range tags {
+		result[i] = &model.FileTagInfo{
+			Name:          t.Name,
+			IsAiGenerated: t.IsAiGenerated,
+			Confidence:    t.Confidence,
+			Count:         t.FileCount,
+		}
+	}
+
+	return result, nil
+}
+
+// SearchSuggestions is the resolver for the searchSuggestions field.
+func (r *queryResolver) SearchSuggestions(ctx context.Context, query string, limit *int) ([]*model.SearchSuggestion, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	lim := 10
+	if limit != nil && *limit > 0 {
+		lim = *limit
+	}
+
+	suggestions, err := r.FileService.SearchSuggestions(userID, query, lim)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get search suggestions: %w", err)
+	}
+
+	result := make([]*model.SearchSuggestion, len(suggestions))
+	for i, s := range suggestions {
+		result[i] = &model.SearchSuggestion{
+			Type:  s.Type,
+			Value: s.Value,
+			ID:    s.ID,
+			Count: s.Count,
+		}
+	}
+
+	return result, nil
+}
+
+// AiTags is the resolver for the aiTags field.
+func (r *queryResolver) AiTags(ctx context.Context, fileID uuid.UUID) (*model.AiTagJob, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.AiTagService == nil {
+		return nil, fmt.Errorf("AI tag service not available")
+	}
+
+	job, err := r.AiTagService.GetAiTagJob(fileID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AI tags: %w", err)
+	}
+
+	if job == nil {
+		return nil, nil // No job exists yet
+	}
+
+	return &model.AiTagJob{
+		ID:               job.ID,
+		FileID:           job.FileID,
+		Status:           job.Status,
+		SuggestedTags:    job.SuggestedTags,
+		ConfidenceScores: job.ConfidenceScores,
+		AiDescription:    job.AiDescription,
+		SuggestedFolder:  &job.SuggestedFolder,
+		ErrorMessage:     job.ErrorMessage,
+		CreatedAt:        job.CreatedAt,
+		CompletedAt:      job.CompletedAt,
+	}, nil
+}
+
+// AiDescription is the resolver for the aiDescription field.
+func (r *queryResolver) AiDescription(ctx context.Context, fileID uuid.UUID) (*model.AiDescriptionResult, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.AiTagService == nil || !r.AiTagService.IsEnabled() {
+		return nil, fmt.Errorf("AI service is not enabled")
+	}
+
+	result, err := r.AiTagService.GenerateDescription(fileID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AI description: %w", err)
+	}
+
+	return &model.AiDescriptionResult{
+		FileID:      result.FileID,
+		Description: result.Description,
+		Status:      result.Status,
+	}, nil
+}
+
+// AiAnalysis is the resolver for the aiAnalysis field.
+func (r *queryResolver) AiAnalysis(ctx context.Context, fileID uuid.UUID) (*model.AiAnalysisResult, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.AiTagService == nil {
+		return nil, fmt.Errorf("AI service not available")
+	}
+
+	job, err := r.AiTagService.GetAiTagJob(fileID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AI analysis: %w", err)
+	}
+
+	if job == nil {
+		return &model.AiAnalysisResult{
+			FileID:           fileID,
+			SuggestedTags:    []string{},
+			ConfidenceScores: []float64{},
+			Description:      "",
+			Status:           "not_started",
+		}, nil
+	}
+
+	return &model.AiAnalysisResult{
+		FileID:           job.FileID,
+		SuggestedTags:    job.SuggestedTags,
+		ConfidenceScores: job.ConfidenceScores,
+		Description:      job.AiDescription,
+		SuggestedFolder:  &job.SuggestedFolder,
+		Status:           job.Status,
+	}, nil
 }
 
 // FilesByType is the resolver for the files_by_type field.

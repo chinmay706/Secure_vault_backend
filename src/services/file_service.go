@@ -1975,6 +1975,218 @@ func (s *FileService) GetTrashedFileByID(fileID uuid.UUID) (*models.File, error)
 	return &file, nil
 }
 
+// UpdateFileTags replaces all tags for a file using the file_tags table (source of truth)
+func (s *FileService) UpdateFileTags(fileID, ownerID uuid.UUID, tags []string) (*models.File, error) {
+	// Verify ownership
+	file, err := s.GetFileByID(fileID)
+	if err != nil {
+		return nil, err
+	}
+	if !file.IsOwnedBy(ownerID) {
+		return nil, ErrUnauthorizedAccess
+	}
+
+	// Build AI tag set for provenance detection
+	aiTagSet := make(map[string]bool)
+	var aiTags []string
+	err = s.db.QueryRow(`
+		SELECT suggested_tags FROM ai_tag_jobs WHERE file_id = $1 AND status = 'completed'
+	`, fileID).Scan(pq.Array(&aiTags))
+	if err == nil {
+		for _, t := range aiTags {
+			aiTagSet[strings.ToLower(strings.TrimSpace(t))] = true
+		}
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Delete all existing tags for this file
+	_, err = tx.Exec(`DELETE FROM file_tags WHERE file_id = $1`, fileID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete old tags: %w", err)
+	}
+
+	// Insert new tags with AI provenance detection
+	for _, tag := range tags {
+		tag = strings.ToLower(strings.TrimSpace(tag))
+		if tag == "" {
+			continue
+		}
+		isAI := aiTagSet[tag]
+		_, err = tx.Exec(`
+			INSERT INTO file_tags (file_id, name, is_ai_generated, confidence)
+			VALUES ($1, $2, $3, 1.0)
+			ON CONFLICT (file_id, name) DO UPDATE SET is_ai_generated = EXCLUDED.is_ai_generated
+		`, fileID, tag, isAI)
+		if err != nil {
+			return nil, fmt.Errorf("failed to insert tag '%s': %w", tag, err)
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// Re-fetch file to get the updated tags (sync trigger updates files.tags)
+	return s.GetFileByID(fileID)
+}
+
+// FileTag represents a tag with metadata from the file_tags table
+type FileTag struct {
+	Name          string  `json:"name"`
+	IsAiGenerated bool    `json:"is_ai_generated"`
+	Confidence    float64 `json:"confidence"`
+	FileCount     int     `json:"file_count"`
+}
+
+// GetAllTagsForUser returns all unique tags for a user
+func (s *FileService) GetAllTagsForUser(ownerID uuid.UUID) ([]FileTag, error) {
+	query := `
+		SELECT ft.name, COUNT(DISTINCT ft.file_id) as file_count,
+		       BOOL_OR(ft.is_ai_generated) as is_ai,
+		       MAX(ft.confidence) as max_confidence
+		FROM file_tags ft
+		JOIN files f ON f.id = ft.file_id
+		WHERE f.owner_id = $1 AND f.deleted_at IS NULL
+		GROUP BY ft.name
+		ORDER BY file_count DESC, ft.name ASC
+	`
+
+	rows, err := s.db.Query(query, ownerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all tags: %w", err)
+	}
+	defer rows.Close()
+
+	var tags []FileTag
+	for rows.Next() {
+		var tag FileTag
+		if err := rows.Scan(&tag.Name, &tag.FileCount, &tag.IsAiGenerated, &tag.Confidence); err != nil {
+			return nil, fmt.Errorf("failed to scan tag: %w", err)
+		}
+		tags = append(tags, tag)
+	}
+
+	return tags, rows.Err()
+}
+
+// GetPopularTags returns the most-used tags for a user
+func (s *FileService) GetPopularTags(ownerID uuid.UUID, limit int) ([]FileTag, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 50 {
+		limit = 50
+	}
+
+	query := `
+		SELECT ft.name, COUNT(DISTINCT ft.file_id) as file_count,
+		       BOOL_OR(ft.is_ai_generated) as is_ai,
+		       MAX(ft.confidence) as max_confidence
+		FROM file_tags ft
+		JOIN files f ON f.id = ft.file_id
+		WHERE f.owner_id = $1 AND f.deleted_at IS NULL
+		GROUP BY ft.name
+		ORDER BY file_count DESC
+		LIMIT $2
+	`
+
+	rows, err := s.db.Query(query, ownerID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get popular tags: %w", err)
+	}
+	defer rows.Close()
+
+	var tags []FileTag
+	for rows.Next() {
+		var tag FileTag
+		if err := rows.Scan(&tag.Name, &tag.FileCount, &tag.IsAiGenerated, &tag.Confidence); err != nil {
+			return nil, fmt.Errorf("failed to scan tag: %w", err)
+		}
+		tags = append(tags, tag)
+	}
+
+	return tags, rows.Err()
+}
+
+// SearchSuggestion represents a search suggestion (tag or file)
+type SearchSuggestion struct {
+	Type  string `json:"type"`  // "tag" or "file"
+	Value string `json:"value"` // tag name or filename
+	ID    string `json:"id"`    // file ID (empty for tags)
+	Count int    `json:"count"` // usage count (for tags)
+}
+
+// SearchSuggestions returns autocomplete suggestions for a search query
+func (s *FileService) SearchSuggestions(ownerID uuid.UUID, query string, limit int) ([]SearchSuggestion, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 20 {
+		limit = 20
+	}
+
+	var suggestions []SearchSuggestion
+	searchTerm := "%" + strings.ToLower(strings.TrimSpace(query)) + "%"
+
+	// 1. Matching tags
+	tagQuery := `
+		SELECT ft.name, COUNT(DISTINCT ft.file_id) as file_count
+		FROM file_tags ft
+		JOIN files f ON f.id = ft.file_id
+		WHERE f.owner_id = $1 AND f.deleted_at IS NULL AND LOWER(ft.name) LIKE $2
+		GROUP BY ft.name
+		ORDER BY file_count DESC
+		LIMIT $3
+	`
+	rows, err := s.db.Query(tagQuery, ownerID, searchTerm, limit/2)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search tags: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var s SearchSuggestion
+		s.Type = "tag"
+		if err := rows.Scan(&s.Value, &s.Count); err != nil {
+			return nil, fmt.Errorf("failed to scan tag suggestion: %w", err)
+		}
+		suggestions = append(suggestions, s)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// 2. Matching filenames
+	fileQuery := `
+		SELECT id, original_filename
+		FROM files
+		WHERE owner_id = $1 AND deleted_at IS NULL AND LOWER(original_filename) LIKE $2
+		ORDER BY updated_at DESC
+		LIMIT $3
+	`
+	fileRows, err := s.db.Query(fileQuery, ownerID, searchTerm, limit/2)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search files: %w", err)
+	}
+	defer fileRows.Close()
+
+	for fileRows.Next() {
+		var s SearchSuggestion
+		s.Type = "file"
+		if err := fileRows.Scan(&s.ID, &s.Value); err != nil {
+			return nil, fmt.Errorf("failed to scan file suggestion: %w", err)
+		}
+		suggestions = append(suggestions, s)
+	}
+
+	return suggestions, fileRows.Err()
+}
+
 // MoveFile moves a file to a different folder (or root if folderID is nil)
 func (s *FileService) MoveFile(fileID, ownerID uuid.UUID, folderID *uuid.UUID) error {
 	if fileID == uuid.Nil {

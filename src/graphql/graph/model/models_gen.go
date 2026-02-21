@@ -4,11 +4,56 @@ package model
 
 import (
 	"securevault-backend/src/models"
+	"time"
+
+	"github.com/google/uuid"
 )
+
+type AiAnalysisResult struct {
+	FileID           uuid.UUID `json:"file_id"`
+	SuggestedTags    []string  `json:"suggested_tags"`
+	ConfidenceScores []float64 `json:"confidence_scores"`
+	Description      string    `json:"description"`
+	SuggestedFolder  *string   `json:"suggested_folder,omitempty"`
+	Status           string    `json:"status"`
+}
+
+type AiDescriptionResult struct {
+	FileID      uuid.UUID `json:"file_id"`
+	Description string    `json:"description"`
+	Status      string    `json:"status"`
+}
+
+type AiTagJob struct {
+	ID               uuid.UUID  `json:"id"`
+	FileID           uuid.UUID  `json:"file_id"`
+	Status           string     `json:"status"`
+	SuggestedTags    []string   `json:"suggested_tags"`
+	ConfidenceScores []float64  `json:"confidence_scores"`
+	AiDescription    string     `json:"ai_description"`
+	SuggestedFolder  *string    `json:"suggested_folder,omitempty"`
+	ErrorMessage     *string    `json:"error_message,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+	CompletedAt      *time.Time `json:"completed_at,omitempty"`
+}
 
 type AuthPayload struct {
 	Token string       `json:"token"`
 	User  *models.User `json:"user"`
+}
+
+type BulkAiTagResult struct {
+	QueuedCount  int    `json:"queued_count"`
+	SkippedCount int    `json:"skipped_count"`
+	Status       string `json:"status"`
+	Message      string `json:"message"`
+}
+
+type FileTagInfo struct {
+	Name          string  `json:"name"`
+	IsAiGenerated bool    `json:"is_ai_generated"`
+	Confidence    float64 `json:"confidence"`
+	Count         int     `json:"count"`
 }
 
 type FileTypeEntry struct {
@@ -20,6 +65,13 @@ type Mutation struct {
 }
 
 type Query struct {
+}
+
+type SearchSuggestion struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
+	ID    string `json:"id"`
+	Count int    `json:"count"`
 }
 
 type TrashResponse struct {

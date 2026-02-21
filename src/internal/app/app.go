@@ -76,6 +76,23 @@ func NewApp() (*App, error) {
 	// Set up circular dependency between folder and file services
 	folderService.SetFileService(fileService)
 
+	// Initialize AI tag service
+	aiProvider := os.Getenv("AI_PROVIDER") // "gemini" or "groq" (auto-detects if empty)
+	geminiAPIKey := os.Getenv("GEMINI_API_KEY")
+	groqAPIKey := os.Getenv("GROQ_API_KEY")
+	aiDailyLimit := 100
+	if envLimit := os.Getenv("AI_DAILY_LIMIT_PER_USER"); envLimit != "" {
+		if parsed, err := fmt.Sscanf(envLimit, "%d", &aiDailyLimit); err != nil || parsed == 0 {
+			aiDailyLimit = 100
+		}
+	}
+	aiTagService := services.NewAiTagService(database.DB, storageService, aiProvider, geminiAPIKey, groqAPIKey, aiDailyLimit)
+	if aiTagService.IsEnabled() {
+		log.Printf("AI tag generation enabled (provider: %s, daily limit: %d)", aiTagService.Provider(), aiDailyLimit)
+	} else {
+		log.Println("AI tag generation disabled (no GEMINI_API_KEY or GROQ_API_KEY set)")
+	}
+
 	// Initialize limits middleware
 	quotaService := &middleware.DefaultQuotaService{} // Using default quota service
 	limitsMiddleware := middleware.NewLimitsMiddleware(5.0, quotaService) // 5 requests per second
@@ -83,7 +100,7 @@ func NewApp() (*App, error) {
 	// Initialize handlers
 	handlers := &Handlers{
 		Auth:           api.NewAuthHandlers(authService),
-		Files:          api.NewFilesHandlers(fileService, storageService, authService),
+		Files:          api.NewFilesHandlers(fileService, storageService, authService, aiTagService),
 		Folders:        api.NewFoldersHandlers(folderService, fileService, authService),
 		PublicDownload: api.NewPublicDownloadHandlers(fileService, storageService),
 		Public:         api.NewPublicHandlers(fileService, folderService, storageService),
@@ -103,7 +120,7 @@ func NewApp() (*App, error) {
 	app.setupMiddleware()
 
 	// Setup routes with services
-	app.setupRoutes(authService, fileService, folderService, statsService, storageService)
+	app.setupRoutes(authService, fileService, folderService, statsService, storageService, aiTagService)
 
 	return app, nil
 }
@@ -146,6 +163,9 @@ func NewTestApp() (*App, error) {
 	// Set up circular dependency between folder and file services
 	folderService.SetFileService(fileService)
 
+	// Initialize AI tag service (no API key in test)
+	aiTagService := services.NewAiTagService(database.DB, storageService, "", "", "", 100)
+
 	// Initialize limits middleware for testing
 	quotaService := &middleware.DefaultQuotaService{} // Using default quota service
 	limitsMiddleware := middleware.NewLimitsMiddleware(5.0, quotaService) // 5 requests per second
@@ -153,7 +173,7 @@ func NewTestApp() (*App, error) {
 	// Initialize handlers
 	handlers := &Handlers{
 		Auth:           api.NewAuthHandlers(authService),
-		Files:          api.NewFilesHandlers(fileService, storageService, authService),
+		Files:          api.NewFilesHandlers(fileService, storageService, authService, aiTagService),
 		Folders:        api.NewFoldersHandlers(folderService, fileService, authService),
 		PublicDownload: api.NewPublicDownloadHandlers(fileService, storageService),
 		Public:         api.NewPublicHandlers(fileService, folderService, storageService),
@@ -173,7 +193,7 @@ func NewTestApp() (*App, error) {
 	app.setupMiddleware()
 
 	// Setup routes with services
-	app.setupRoutes(authService, fileService, folderService, statsService, storageService)
+	app.setupRoutes(authService, fileService, folderService, statsService, storageService, aiTagService)
 
 	return app, nil
 }
@@ -210,7 +230,7 @@ func (a *App) setupMiddleware() {
 }
 
 // setupRoutes configures all API routes
-func (a *App) setupRoutes(authService *services.AuthService, fileService *services.FileService, folderService *services.FolderService, statsService *services.StatsService, storageService *services.StorageService) {
+func (a *App) setupRoutes(authService *services.AuthService, fileService *services.FileService, folderService *services.FolderService, statsService *services.StatsService, storageService *services.StorageService, aiTagService *services.AiTagService) {
 	// Health check endpoint
 	a.router.HandleFunc("/health", a.handleHealth).Methods("GET")
 	
@@ -232,7 +252,8 @@ func (a *App) setupRoutes(authService *services.AuthService, fileService *servic
 	api.HandleFunc("/users/{id}", a.handlers.Auth.HandleDeleteUser).Methods("DELETE", "OPTIONS")
 	api.HandleFunc("/users/{id}/password", a.handlers.Auth.HandleUpdatePassword).Methods("PATCH", "OPTIONS")
 	
-	// File routes
+	// File routes (bulk routes must be registered before {id} routes for gorilla/mux)
+	api.HandleFunc("/files/bulk-ai-tags", a.handlers.Files.HandleBulkAiTags).Methods("POST", "OPTIONS")
 	api.HandleFunc("/files", a.handlers.Files.HandleFilesList).Methods("GET", "OPTIONS")
 	api.HandleFunc("/files", a.handlers.Files.HandleFileUpload).Methods("POST", "OPTIONS")
 	api.HandleFunc("/files/upload", a.handlers.Files.HandleFileUpload).Methods("POST", "OPTIONS")
@@ -241,6 +262,9 @@ func (a *App) setupRoutes(authService *services.AuthService, fileService *servic
 	api.HandleFunc("/files/{id}/download", a.handlers.Files.HandleFileDownload).Methods("GET", "OPTIONS")
 	api.HandleFunc("/files/{id}/public", a.handlers.Files.HandleTogglePublic).Methods("PATCH", "OPTIONS")
 	api.HandleFunc("/files/{id}/move", a.handlers.Files.HandleFileMove).Methods("PATCH", "OPTIONS")
+	api.HandleFunc("/files/{id}/ai-tags", a.handlers.Files.HandleGetAiTags).Methods("GET", "OPTIONS")
+	api.HandleFunc("/files/{id}/ai-tags", a.handlers.Files.HandleTriggerAiTags).Methods("POST", "OPTIONS")
+	api.HandleFunc("/files/{id}/ai-describe", a.handlers.Files.HandleAiDescribe).Methods("POST", "OPTIONS")
 	
 	// Folder routes
 	api.HandleFunc("/folders", a.handlers.Folders.HandleCreateFolder).Methods("POST", "OPTIONS")
@@ -279,7 +303,7 @@ func (a *App) setupRoutes(authService *services.AuthService, fileService *servic
 	api.HandleFunc("/admin/users/{id}/suspend", a.handlers.Admin.HandleAdminSuspendUser).Methods("POST", "OPTIONS")
 	
 	// GraphQL routes
-	a.setupGraphQLRoutes(api, authService, fileService, folderService, statsService, storageService)
+	a.setupGraphQLRoutes(api, authService, fileService, folderService, statsService, storageService, aiTagService)
 }
 
 // handleHealth provides a basic health check endpoint
@@ -387,9 +411,9 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 // setupGraphQLRoutes configures GraphQL endpoints
-func (a *App) setupGraphQLRoutes(api *mux.Router, authService *services.AuthService, fileService *services.FileService, folderService *services.FolderService, statsService *services.StatsService, storageService *services.StorageService) {
+func (a *App) setupGraphQLRoutes(api *mux.Router, authService *services.AuthService, fileService *services.FileService, folderService *services.FolderService, statsService *services.StatsService, storageService *services.StorageService, aiTagService *services.AiTagService) {
 	// GraphQL endpoint
-	graphqlHandler := graphqlServer.NewGraphQLHandler(authService, fileService, folderService, statsService, storageService)
+	graphqlHandler := graphqlServer.NewGraphQLHandler(authService, fileService, folderService, statsService, storageService, aiTagService)
 	api.Handle("/graphql", graphqlHandler).Methods("POST", "OPTIONS")
 	
 	// GraphQL Playground - only available in non-production environments
