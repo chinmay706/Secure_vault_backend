@@ -646,8 +646,7 @@ func (r *mutationResolver) GenerateAiTags(ctx context.Context, fileID uuid.UUID)
 		return nil, fmt.Errorf("AI tag generation is not enabled")
 	}
 
-	// Trigger async generation
-	go r.AiTagService.GenerateTagsForFile(fileID, userID)
+	services.TryRunBackground(func() { r.AiTagService.GenerateTagsForFile(fileID, userID) })
 
 	// Return a pending job status
 	return &model.AiTagJob{

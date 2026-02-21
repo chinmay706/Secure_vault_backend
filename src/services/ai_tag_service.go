@@ -497,8 +497,7 @@ func (s *AiTagService) BulkGenerateTags(fileIDs []uuid.UUID, ownerID uuid.UUID) 
 		}
 	}
 
-	// Process sequentially in background with delay
-	go func() {
+	TryRunBackground(func() {
 		for i, fid := range toProcess {
 			if i > 0 {
 				time.Sleep(bulkDelayBetweenFiles)
@@ -506,7 +505,7 @@ func (s *AiTagService) BulkGenerateTags(fileIDs []uuid.UUID, ownerID uuid.UUID) 
 			s.GenerateTagsForFile(fid, ownerID)
 		}
 		log.Printf("[AI-BULK] Completed bulk processing of %d files for user %s", len(toProcess), ownerID)
-	}()
+	})
 
 	return &BulkAiTagResult{
 		QueuedCount:  len(toProcess),
@@ -548,8 +547,7 @@ func (s *AiTagService) ResetAndTrigger(fileID, ownerID uuid.UUID) error {
 		return fmt.Errorf("failed to reset job: %w", err)
 	}
 
-	// Trigger async
-	go s.GenerateTagsForFile(fileID, ownerID)
+	TryRunBackground(func() { s.GenerateTagsForFile(fileID, ownerID) })
 	return nil
 }
 

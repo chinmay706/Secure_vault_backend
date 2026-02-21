@@ -719,36 +719,31 @@ func (s *FileService) ListFilesEnhanced(req FileListRequest) (*FileListResponse,
 		req.SortOrder = "desc"
 	}
 
-	// Build WHERE clause using hardcoded approach to avoid prepared statement issues
-	whereClause := s.buildHardcodedWhereClause(req)
-	
-	// Build ORDER BY clause
+	whereClause, args := s.buildParameterizedWhereClause(req)
 	orderClause := s.buildOrderByClause(req.SortBy, req.SortOrder)
-
-	// Calculate offset
 	offset := (req.Page - 1) * req.PageSize
 
-	// Count total items using hardcoded query to avoid prepared statement conflicts
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM files f %s", whereClause)
 	log.Printf("[FILE-SERVICE] Count query: %s", countQuery)
 	var totalItems int64
-	err := s.db.QueryRow(countQuery).Scan(&totalItems)
+	err := s.db.QueryRow(countQuery, args...).Scan(&totalItems)
 	if err != nil {
 		log.Printf("[FILE-SERVICE] Count query failed: %v", err)
 		return nil, fmt.Errorf("failed to count files: %w", err)
 	}
 	log.Printf("[FILE-SERVICE] Count query success - total items: %d", totalItems)
 
-	// Query files with pagination using hardcoded approach to avoid prepared statement conflicts
+	nextArg := len(args) + 1
 	query := fmt.Sprintf(`
 		SELECT f.id, f.owner_id, f.blob_hash, f.original_filename, f.mime_type, f.size_bytes,
 		       f.is_public, f.download_count, f.tags, f.folder_id, f.created_at, f.updated_at, f.deleted_at
 		FROM files f %s %s
-		LIMIT %d OFFSET %d`,
-		whereClause, orderClause, req.PageSize, offset)
+		LIMIT $%d OFFSET $%d`,
+		whereClause, orderClause, nextArg, nextArg+1)
+	queryArgs := append(args, req.PageSize, offset)
 
 	log.Printf("[FILE-SERVICE] Files query: %s", query)
-	rows, err := s.db.Query(query)
+	rows, err := s.db.Query(query, queryArgs...)
 	if err != nil {
 		log.Printf("[FILE-SERVICE] Files query failed: %v", err)
 		return nil, fmt.Errorf("failed to query files: %w", err)
@@ -877,78 +872,81 @@ func (s *FileService) buildEnhancedWhereClause(req FileListRequest) (string, []i
 	return whereClause, args
 }
 
-// buildHardcodedWhereClause creates WHERE clause with hardcoded values to avoid prepared statement issues
-func (s *FileService) buildHardcodedWhereClause(req FileListRequest) string {
+func (s *FileService) buildParameterizedWhereClause(req FileListRequest) (string, []interface{}) {
 	var conditions []string
+	var args []interface{}
+	argIdx := 1
 
-	// Always exclude trashed files
 	conditions = append(conditions, "f.deleted_at IS NULL")
 
-	// Owner filter with hardcoded UUID
 	if req.OwnerID != nil {
-		conditions = append(conditions, fmt.Sprintf("f.owner_id = '%s'", req.OwnerID.String()))
+		conditions = append(conditions, fmt.Sprintf("f.owner_id = $%d", argIdx))
+		args = append(args, *req.OwnerID)
+		argIdx++
 	}
 
-	// Folder filter with hardcoded UUID
 	if req.FolderID != nil {
-		conditions = append(conditions, fmt.Sprintf("f.folder_id = '%s'", req.FolderID.String()))
+		conditions = append(conditions, fmt.Sprintf("f.folder_id = $%d", argIdx))
+		args = append(args, *req.FolderID)
+		argIdx++
 	}
 
-	// Search in filename with escaped string
 	if req.Search != "" {
-		// Escape single quotes for SQL safety
-		escapedSearch := strings.ReplaceAll(req.Search, "'", "''")
-		conditions = append(conditions, fmt.Sprintf("f.original_filename ILIKE '%%%s%%'", escapedSearch))
+		conditions = append(conditions, fmt.Sprintf("f.original_filename ILIKE $%d", argIdx))
+		args = append(args, "%"+req.Search+"%")
+		argIdx++
 	}
 
-	// MIME type filter - for simplicity, just handle single type
 	if len(req.MimeTypes) > 0 {
-		// Escape single quotes and take first mime type
-		escapedMime := strings.ReplaceAll(req.MimeTypes[0], "'", "''")
-		conditions = append(conditions, fmt.Sprintf("f.mime_type = '%s'", escapedMime))
+		conditions = append(conditions, fmt.Sprintf("f.mime_type = $%d", argIdx))
+		args = append(args, req.MimeTypes[0])
+		argIdx++
 	}
 
-	// Public status filter
 	if req.IsPublic != nil {
-		conditions = append(conditions, fmt.Sprintf("f.is_public = %t", *req.IsPublic))
+		conditions = append(conditions, fmt.Sprintf("f.is_public = $%d", argIdx))
+		args = append(args, *req.IsPublic)
+		argIdx++
 	}
 
-	// Size filters
 	if req.MinSizeBytes != nil {
-		conditions = append(conditions, fmt.Sprintf("f.size_bytes >= %d", *req.MinSizeBytes))
+		conditions = append(conditions, fmt.Sprintf("f.size_bytes >= $%d", argIdx))
+		args = append(args, *req.MinSizeBytes)
+		argIdx++
 	}
 	if req.MaxSizeBytes != nil {
-		conditions = append(conditions, fmt.Sprintf("f.size_bytes <= %d", *req.MaxSizeBytes))
+		conditions = append(conditions, fmt.Sprintf("f.size_bytes <= $%d", argIdx))
+		args = append(args, *req.MaxSizeBytes)
+		argIdx++
 	}
 
-	// Date range filters - using RFC3339 format
 	if req.CreatedAfter != nil {
-		conditions = append(conditions, fmt.Sprintf("f.created_at > '%s'", req.CreatedAfter.Format(time.RFC3339)))
+		conditions = append(conditions, fmt.Sprintf("f.created_at > $%d", argIdx))
+		args = append(args, *req.CreatedAfter)
+		argIdx++
 	}
 	if req.CreatedBefore != nil {
-		conditions = append(conditions, fmt.Sprintf("f.created_at < '%s'", req.CreatedBefore.Format(time.RFC3339)))
+		conditions = append(conditions, fmt.Sprintf("f.created_at < $%d", argIdx))
+		args = append(args, *req.CreatedBefore)
+		argIdx++
 	}
 
-	// Tags filter - check for overlap with PostgreSQL array operator
 	if len(req.Tags) > 0 {
-		// Build array literal for PostgreSQL using ARRAY syntax
-		tagLiterals := make([]string, len(req.Tags))
+		placeholders := make([]string, len(req.Tags))
 		for i, tag := range req.Tags {
-			// Escape single quotes in tags for SQL safety
-			escapedTag := strings.ReplaceAll(tag, "'", "''")
-			tagLiterals[i] = fmt.Sprintf("'%s'", escapedTag)
+			placeholders[i] = fmt.Sprintf("$%d", argIdx)
+			args = append(args, tag)
+			argIdx++
 		}
-		tagsArray := "ARRAY[" + strings.Join(tagLiterals, ",") + "]"
-		conditions = append(conditions, fmt.Sprintf("f.tags && %s", tagsArray))
+		conditions = append(conditions, fmt.Sprintf("f.tags && ARRAY[%s]::text[]", strings.Join(placeholders, ",")))
 	}
 
-	// Build final WHERE clause
 	whereClause := ""
 	if len(conditions) > 0 {
 		whereClause = "WHERE " + strings.Join(conditions, " AND ")
 	}
 
-	return whereClause
+	return whereClause, args
 }
 
 // buildOrderByClause constructs ORDER BY clause with validation

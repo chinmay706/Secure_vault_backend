@@ -93,8 +93,7 @@ func (h *SummaryHandlers) HandleGenerateAiSummary(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Fire async generation
-	go h.aiSummaryService.GenerateSummary(fileID, userID)
+	services.TryRunBackground(func() { h.aiSummaryService.GenerateSummary(fileID, userID) })
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)

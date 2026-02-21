@@ -37,6 +37,7 @@ type Handlers struct {
 	Stats          *api.StatsHandlers
 	Admin          *api.AdminHandlers
 	Summary        *api.SummaryHandlers
+	Conversion     *api.ConversionHandlers
 }
 
 // NewApp creates and configures a new App instance
@@ -55,7 +56,10 @@ func NewApp() (*App, error) {
 	// Initialize services
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		log.Println("Warning: JWT_SECRET not set, using default (not secure for production)")
+		if os.Getenv("ENVIRONMENT") == "production" {
+			return nil, fmt.Errorf("JWT_SECRET must be set in production")
+		}
+		log.Println("Warning: JWT_SECRET not set, using default (development only)")
 		jwtSecret = "default-secret-key-change-in-production"
 	}
 
@@ -101,6 +105,11 @@ func NewApp() (*App, error) {
 		log.Println("AI summary service enabled")
 	}
 
+	// Initialize conversion service
+	conversionService := services.NewConversionService(database.DB, storageService, fileService, "./conversions")
+	conversionService.StartCleanupLoop()
+	log.Println("File conversion service enabled")
+
 	// Initialize limits middleware
 	quotaService := &middleware.DefaultQuotaService{} // Using default quota service
 	limitsMiddleware := middleware.NewLimitsMiddleware(5.0, quotaService) // 5 requests per second
@@ -115,6 +124,7 @@ func NewApp() (*App, error) {
 		Stats:          api.NewStatsHandlers(statsService, authService),
 		Admin:          api.NewAdminHandlers(statsService, fileService, authService),
 		Summary:        api.NewSummaryHandlers(aiSummaryService, authService),
+		Conversion:     api.NewConversionHandlers(conversionService, authService),
 	}
 
 	app := &App{
@@ -178,6 +188,9 @@ func NewTestApp() (*App, error) {
 	// Initialize AI summary service (no API key in test)
 	aiSummaryService := services.NewAiSummaryService(database.DB, storageService, "", "")
 
+	// Initialize conversion service for testing
+	conversionService := services.NewConversionService(database.DB, storageService, fileService, "./test-conversions")
+
 	// Initialize limits middleware for testing
 	quotaService := &middleware.DefaultQuotaService{} // Using default quota service
 	limitsMiddleware := middleware.NewLimitsMiddleware(5.0, quotaService) // 5 requests per second
@@ -192,6 +205,7 @@ func NewTestApp() (*App, error) {
 		Stats:          api.NewStatsHandlers(statsService, authService),
 		Admin:          api.NewAdminHandlers(statsService, fileService, authService),
 		Summary:        api.NewSummaryHandlers(aiSummaryService, authService),
+		Conversion:     api.NewConversionHandlers(conversionService, authService),
 	}
 
 	app := &App{
@@ -281,6 +295,13 @@ func (a *App) setupRoutes(authService *services.AuthService, fileService *servic
 	api.HandleFunc("/files/{id}/ai-summary", a.handlers.Summary.HandleGetAiSummary).Methods("GET", "OPTIONS")
 	api.HandleFunc("/files/{id}/ai-summary", a.handlers.Summary.HandleGenerateAiSummary).Methods("POST", "OPTIONS")
 	api.HandleFunc("/files/{id}/ai-summary/refine", a.handlers.Summary.HandleRefineAiSummary).Methods("POST", "OPTIONS")
+	api.HandleFunc("/files/{id}/convert", a.handlers.Conversion.HandleStartConversion).Methods("POST", "OPTIONS")
+
+	// Conversion routes
+	api.HandleFunc("/conversions", a.handlers.Conversion.HandleConversionHistory).Methods("GET", "OPTIONS")
+	api.HandleFunc("/conversions/{jobId}", a.handlers.Conversion.HandleGetConversionJob).Methods("GET", "OPTIONS")
+	api.HandleFunc("/conversions/{jobId}", a.handlers.Conversion.HandleDeleteConversion).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/conversions/{jobId}/download", a.handlers.Conversion.HandleDownloadConversion).Methods("GET", "OPTIONS")
 	
 	// Folder routes
 	api.HandleFunc("/folders", a.handlers.Folders.HandleCreateFolder).Methods("POST", "OPTIONS")

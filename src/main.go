@@ -22,29 +22,55 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"securevault-backend/src/internal/app"
-	_ "securevault-backend/src/swaggerdocs" // Import swagger docs for registration
+	_ "securevault-backend/src/swaggerdocs"
 )
 
 func main() {
-	// Load configuration from environment
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	// Initialize the application
-	app, err := app.NewApp()
+	application, err := app.NewApp()
 	if err != nil {
 		log.Fatalf("Failed to initialize app: %v", err)
 	}
+	defer application.Close()
 
-	// Start the server
-	log.Printf("Server starting on port %s", port)
-	if err := http.ListenAndServe(":"+port, app.Router()); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+	srv := &http.Server{
+		Addr:              ":" + port,
+		Handler:           application.Router(),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
+
+	go func() {
+		log.Printf("Server starting on port %s", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server failed: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down gracefully...")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Forced shutdown: %v", err)
+	}
+	log.Println("Server stopped")
 }

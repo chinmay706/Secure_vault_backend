@@ -908,6 +908,22 @@ type PromoteUserRequest struct {
 // @Failure 500 {object} ErrorResponse "Internal server error"
 // @Router /admin/signup [post]
 func (h *AdminHandlers) HandleAdminSignup(w http.ResponseWriter, r *http.Request) {
+	callerID, err := h.extractUserFromAuth(r)
+	if err != nil {
+		h.writeErrorResponse(w, "UNAUTHORIZED", "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	isAdmin, err := h.authService.IsAdmin(callerID)
+	if err != nil {
+		h.writeErrorResponse(w, "INTERNAL_ERROR", "Failed to verify admin privileges", http.StatusInternalServerError)
+		return
+	}
+	if !isAdmin {
+		h.writeErrorResponse(w, "FORBIDDEN", "Only admins can create admin accounts", http.StatusForbidden)
+		return
+	}
+
 	// Parse request body
 	var req SignupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

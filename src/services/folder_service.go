@@ -40,26 +40,21 @@ func (fs *FolderService) ListFoldersOnly(ownerID uuid.UUID, parentID *uuid.UUID)
 	var err error
 	
 	if parentID == nil {
-		// Root level folders - use hardcoded query to bypass prepared statement issues
 		log.Printf("[FOLDER-SERVICE] Querying root level folders for ownerID: %s", ownerID)
-		log.Printf("[FOLDER-SERVICE] SQL: SELECT folders WHERE owner_id = %s AND parent_id IS NULL", ownerID)
-		query := fmt.Sprintf(`
+		folderRows, err = fs.db.Query(`
 			SELECT root_f.id, root_f.owner_id, root_f.name, root_f.parent_id, root_f.created_at, root_f.updated_at, root_f.deleted_at
 			FROM folders root_f 
-			WHERE root_f.owner_id = '%s' AND root_f.parent_id IS NULL AND root_f.deleted_at IS NULL
+			WHERE root_f.owner_id = $1 AND root_f.parent_id IS NULL AND root_f.deleted_at IS NULL
 			ORDER BY root_f.name ASC
-		`, ownerID.String())
-		folderRows, err = fs.db.Query(query)
+		`, ownerID)
 	} else {
 		log.Printf("[FOLDER-SERVICE] Querying child folders for parentID: %s", *parentID)
-		log.Printf("[FOLDER-SERVICE] SQL: SELECT folders WHERE owner_id = %s AND parent_id = %s", ownerID, *parentID)
-		query := fmt.Sprintf(`
+		folderRows, err = fs.db.Query(`
 			SELECT child_f.id, child_f.owner_id, child_f.name, child_f.parent_id, child_f.created_at, child_f.updated_at, child_f.deleted_at
 			FROM folders child_f 
-			WHERE child_f.owner_id = '%s' AND child_f.parent_id = '%s' AND child_f.deleted_at IS NULL
+			WHERE child_f.owner_id = $1 AND child_f.parent_id = $2 AND child_f.deleted_at IS NULL
 			ORDER BY child_f.name ASC
-		`, ownerID.String(), parentID.String())
-		folderRows, err = fs.db.Query(query)
+		`, ownerID, *parentID)
 	}
 	
 	if err != nil {

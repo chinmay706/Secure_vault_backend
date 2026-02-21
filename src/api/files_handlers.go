@@ -379,9 +379,8 @@ func (h *FilesHandlers) HandleFileUpload(w http.ResponseWriter, r *http.Request)
 		IsDuplicate: result.IsDeuplicate,
 	}
 
-	// Trigger async AI tag generation for new (non-duplicate) uploads
 	if !result.IsDeuplicate && h.aiTagService != nil && h.aiTagService.IsEnabled() {
-		go h.aiTagService.GenerateTagsForFile(result.File.ID, userID)
+		services.TryRunBackground(func() { h.aiTagService.GenerateTagsForFile(result.File.ID, userID) })
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -413,7 +412,7 @@ func (h *FilesHandlers) HandleGetAiTags(w http.ResponseWriter, r *http.Request) 
 	// V2: If no job found, auto-trigger and return 202
 	if job == nil {
 		if h.aiTagService.IsEnabled() {
-			go h.aiTagService.GenerateTagsForFile(fileID, userID)
+			services.TryRunBackground(func() { h.aiTagService.GenerateTagsForFile(fileID, userID) })
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusAccepted)
 			json.NewEncoder(w).Encode(map[string]interface{}{
