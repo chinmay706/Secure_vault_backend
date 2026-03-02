@@ -14,6 +14,7 @@ type Resolver struct {
 	FolderService  *services.FolderService
 	StatsService   *services.StatsService
 	StorageService *services.StorageService
+	AiTagService   *services.AiTagService
 }
 
 // NewResolver creates a new resolver with service dependencies
@@ -23,6 +24,7 @@ func NewResolver(
 	folderService *services.FolderService,
 	statsService *services.StatsService,
 	storageService *services.StorageService,
+	aiTagService *services.AiTagService,
 ) *Resolver {
 	return &Resolver{
 		AuthService:    authService,
@@ -30,5 +32,6 @@ func NewResolver(
 		FolderService:  folderService,
 		StatsService:   statsService,
 		StorageService: storageService,
+		AiTagService:   aiTagService,
 	}
 }

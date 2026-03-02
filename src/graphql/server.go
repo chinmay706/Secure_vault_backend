@@ -3,6 +3,7 @@ package graphql
 import (
 	"log"
 	"net/http"
+	"os"
 	"securevault-backend/src/graphql/graph"
 	"securevault-backend/src/graphql/middleware"
 	"securevault-backend/src/services"
@@ -16,11 +17,11 @@ import (
 )
 
 // NewGraphQLHandler creates the GraphQL HTTP handler with services
-func NewGraphQLHandler(authService *services.AuthService, fileService *services.FileService, folderService *services.FolderService, statsService *services.StatsService, storageService *services.StorageService) http.Handler {
+func NewGraphQLHandler(authService *services.AuthService, fileService *services.FileService, folderService *services.FolderService, statsService *services.StatsService, storageService *services.StorageService, aiTagService *services.AiTagService) http.Handler {
 	log.Printf("[GQL-SERVER] Initializing GraphQL handler with services")
 	
 	// Create resolver with services
-	resolver := graph.NewResolver(authService, fileService, folderService, statsService, storageService)
+	resolver := graph.NewResolver(authService, fileService, folderService, statsService, storageService, aiTagService)
 
 	// Create GraphQL server
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
@@ -35,7 +36,10 @@ func NewGraphQLHandler(authService *services.AuthService, fileService *services.
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 
 	// Add extensions
-	srv.Use(extension.Introspection{})
+	// Only enable introspection in non-production environments
+	if os.Getenv("ENVIRONMENT") != "production" {
+		srv.Use(extension.Introspection{})
+	}
 	srv.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New[string](100),
 	})

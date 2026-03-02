@@ -1,10 +1,12 @@
 package services
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"securevault-backend/src/models"
@@ -12,6 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/api/idtoken"
 )
 
 var (
@@ -237,6 +240,11 @@ func (s *AuthService) Login(req *LoginRequest) (*AuthResponse, error) {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
+	// Google-only users cannot use password login
+	if user.PasswordHash == "" && user.GoogleID.Valid {
+		return nil, errors.New("this account uses Google sign-in, please login with Google")
+	}
+
 	// Check password
 	if !s.CheckPassword(req.Password, user.PasswordHash) {
 		return nil, ErrInvalidCredentials
@@ -434,8 +442,10 @@ func (s *AuthService) ChangePassword(userID uuid.UUID, oldPassword, newPassword 
 // getUserByEmail is a helper method to get user by email
 func (s *AuthService) getUserByEmail(email string) (*models.User, error) {
 	var user models.User
+	var passwordHash sql.NullString
 	query := `
-		SELECT id, email, password_hash, role, rate_limit_rps, storage_quota_bytes, created_at, updated_at
+		SELECT id, email, password_hash, role, rate_limit_rps, storage_quota_bytes,
+		       google_id, name, avatar_url, created_at, updated_at
 		FROM users 
 		WHERE email = $1
 	`
@@ -443,10 +453,13 @@ func (s *AuthService) getUserByEmail(email string) (*models.User, error) {
 	err := s.db.QueryRow(query, email).Scan(
 		&user.ID,
 		&user.Email,
-		&user.PasswordHash,
+		&passwordHash,
 		&user.Role,
 		&user.RateLimitRps,
 		&user.StorageQuotaBytes,
+		&user.GoogleID,
+		&user.Name,
+		&user.AvatarURL,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -455,14 +468,20 @@ func (s *AuthService) getUserByEmail(email string) (*models.User, error) {
 		return nil, err
 	}
 
+	if passwordHash.Valid {
+		user.PasswordHash = passwordHash.String
+	}
+
 	return &user, nil
 }
 
 // getUserByID is a helper method to get user by ID
 func (s *AuthService) getUserByID(userID uuid.UUID) (*models.User, error) {
 	var user models.User
+	var passwordHash sql.NullString
 	query := `
-		SELECT id, email, password_hash, role, rate_limit_rps, storage_quota_bytes, created_at, updated_at
+		SELECT id, email, password_hash, role, rate_limit_rps, storage_quota_bytes,
+		       google_id, name, avatar_url, created_at, updated_at
 		FROM users 
 		WHERE id = $1
 	`
@@ -470,16 +489,23 @@ func (s *AuthService) getUserByID(userID uuid.UUID) (*models.User, error) {
 	err := s.db.QueryRow(query, userID).Scan(
 		&user.ID,
 		&user.Email,
-		&user.PasswordHash,
+		&passwordHash,
 		&user.Role,
 		&user.RateLimitRps,
 		&user.StorageQuotaBytes,
+		&user.GoogleID,
+		&user.Name,
+		&user.AvatarURL,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
 
 	if err != nil {
 		return nil, err
+	}
+
+	if passwordHash.Valid {
+		user.PasswordHash = passwordHash.String
 	}
 
 	return &user, nil
@@ -589,4 +615,165 @@ func (s *AuthService) UpdatePassword(userID uuid.UUID, req *UpdatePasswordReques
 	}
 
 	return nil
+}
+
+// GoogleLoginRequest represents a Google OAuth login request
+type GoogleLoginRequest struct {
+	IDToken string `json:"id_token"`
+}
+
+// GoogleLogin verifies a Google ID token and creates or logs in the user
+func (s *AuthService) GoogleLogin(req *GoogleLoginRequest) (*AuthResponse, error) {
+	if req.IDToken == "" {
+		return nil, errors.New("Google ID token is required")
+	}
+
+	// Get Google Client ID from environment
+	clientID := os.Getenv("GOOGLE_CLIENT_ID")
+	if clientID == "" {
+		return nil, errors.New("Google OAuth is not configured")
+	}
+
+	// Verify the Google ID token
+	payload, err := idtoken.Validate(context.Background(), req.IDToken, clientID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid Google ID token: %w", err)
+	}
+
+	// Extract user info from the verified token payload
+	email, _ := payload.Claims["email"].(string)
+	name, _ := payload.Claims["name"].(string)
+	picture, _ := payload.Claims["picture"].(string)
+	googleID := payload.Subject // Google's unique user identifier
+
+	if email == "" {
+		return nil, errors.New("email not found in Google token")
+	}
+
+	// Check if user exists by Google ID first
+	user, err := s.getUserByGoogleID(googleID)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("failed to check existing Google user: %w", err)
+	}
+
+	if user != nil {
+		// Existing Google user -- update profile info if changed
+		s.updateGoogleUserProfile(user.ID, name, picture)
+
+		token, err := s.GenerateToken(user)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate token: %w", err)
+		}
+		return &AuthResponse{User: user, Token: token}, nil
+	}
+
+	// Check if a user with the same email exists (email/password user)
+	existingUser, err := s.getUserByEmail(email)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("failed to check existing email user: %w", err)
+	}
+
+	if existingUser != nil {
+		// Link Google account to existing email user
+		err = s.linkGoogleAccount(existingUser.ID, googleID, name, picture)
+		if err != nil {
+			return nil, fmt.Errorf("failed to link Google account: %w", err)
+		}
+
+		// Refresh user data after linking
+		existingUser, _ = s.getUserByID(existingUser.ID)
+
+		token, err := s.GenerateToken(existingUser)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate token: %w", err)
+		}
+		return &AuthResponse{User: existingUser, Token: token}, nil
+	}
+
+	// New user -- create account from Google data
+	newUser := models.NewGoogleUser(email, googleID, name, picture)
+
+	query := `
+		INSERT INTO users (id, email, role, rate_limit_rps, storage_quota_bytes, google_id, name, avatar_url, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	`
+
+	_, err = s.db.Exec(query,
+		newUser.ID,
+		newUser.Email,
+		newUser.Role,
+		newUser.RateLimitRps,
+		newUser.StorageQuotaBytes,
+		newUser.GoogleID,
+		newUser.Name,
+		newUser.AvatarURL,
+		newUser.CreatedAt,
+		newUser.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Google user: %w", err)
+	}
+
+	token, err := s.GenerateToken(newUser)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	return &AuthResponse{User: newUser, Token: token}, nil
+}
+
+// getUserByGoogleID finds a user by their Google ID
+func (s *AuthService) getUserByGoogleID(googleID string) (*models.User, error) {
+	var user models.User
+	var passwordHash sql.NullString
+	query := `
+		SELECT id, email, password_hash, role, rate_limit_rps, storage_quota_bytes,
+		       google_id, name, avatar_url, created_at, updated_at
+		FROM users
+		WHERE google_id = $1
+	`
+
+	err := s.db.QueryRow(query, googleID).Scan(
+		&user.ID,
+		&user.Email,
+		&passwordHash,
+		&user.Role,
+		&user.RateLimitRps,
+		&user.StorageQuotaBytes,
+		&user.GoogleID,
+		&user.Name,
+		&user.AvatarURL,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if passwordHash.Valid {
+		user.PasswordHash = passwordHash.String
+	}
+
+	return &user, nil
+}
+
+// linkGoogleAccount links a Google account to an existing user
+func (s *AuthService) linkGoogleAccount(userID uuid.UUID, googleID, name, picture string) error {
+	query := `
+		UPDATE users
+		SET google_id = $1, name = COALESCE(NULLIF($2, ''), name), avatar_url = COALESCE(NULLIF($3, ''), avatar_url), updated_at = $4
+		WHERE id = $5
+	`
+	_, err := s.db.Exec(query, googleID, name, picture, time.Now(), userID)
+	return err
+}
+
+// updateGoogleUserProfile updates name and avatar from Google if they changed
+func (s *AuthService) updateGoogleUserProfile(userID uuid.UUID, name, picture string) {
+	query := `
+		UPDATE users
+		SET name = COALESCE(NULLIF($1, ''), name), avatar_url = COALESCE(NULLIF($2, ''), avatar_url), updated_at = $3
+		WHERE id = $4
+	`
+	s.db.Exec(query, name, picture, time.Now(), userID)
 }

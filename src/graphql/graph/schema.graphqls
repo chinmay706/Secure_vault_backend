@@ -33,6 +33,7 @@ type File {
   tags: [String!]!
   created_at: DateTime!
   updated_at: DateTime!
+  deleted_at: DateTime
   share_link: ShareLink
 }
 
@@ -43,6 +44,7 @@ type Folder {
   parent_id: UUID
   created_at: DateTime!
   updated_at: DateTime!
+  deleted_at: DateTime
   share_link: ShareLink
 }
 
@@ -113,6 +115,15 @@ type ActiveUserEntry {
   file_count: Int!
   last_upload: DateTime
   total_downloads: Int!
+}
+
+# Trash response for listing trashed items
+type TrashResponse {
+  files: [File!]!
+  folders: [Folder!]!
+  page: Int!
+  page_size: Int!
+  total: Int!
 }
 
 # List responses matching REST structure exactly
@@ -219,6 +230,9 @@ type Query {
     page_size: Int = 20
   ): FolderChildrenResponse!
 
+  # Trash / Recycle Bin query
+  trash(page: Int, page_size: Int): TrashResponse!
+
   # Admin-only queries
   # List all files with admin details (mirrors GET /api/v1/admin/files)
   adminFiles(
@@ -233,6 +247,25 @@ type Query {
 
   # Global admin statistics (mirrors GET /api/v1/admin/stats)
   adminStats: AdminStatsResponse!
+
+  # --- AI Tag queries ---
+  # Get all unique tags for the current user (for Tag Explorer)
+  allTags: [FileTagInfo!]!
+
+  # Get the most popular tags for the current user
+  popularTags(limit: Int = 10): [FileTagInfo!]!
+
+  # Get search autocomplete suggestions (matching tags and files)
+  searchSuggestions(query: String!, limit: Int = 10): [SearchSuggestion!]!
+
+  # Get AI tag generation job status for a file
+  aiTags(file_id: UUID!): AiTagJob
+
+  # Get AI description for a file (cached or generate)
+  aiDescription(file_id: UUID!): AiDescriptionResult!
+
+  # Get full AI analysis for a file (tags + description + folder)
+  aiAnalysis(file_id: UUID!): AiAnalysisResult!
 }
 
 # Root Mutation type
@@ -271,9 +304,88 @@ type Mutation {
   # Delete folder share link (mirrors DELETE /api/v1/folders/{id}/share)
   deleteFolderShareLink(id: UUID!): Boolean!
 
+  # Trash / Recycle Bin mutations
+  trashFile(id: UUID!): Boolean!
+  trashFolder(id: UUID!, recursive: Boolean = true): Boolean!
+  restoreFile(id: UUID!): File!
+  restoreFolder(id: UUID!): Folder!
+  permanentDeleteFile(id: UUID!): Boolean!
+  permanentDeleteFolder(id: UUID!): Boolean!
+  emptyTrash: Boolean!
+
+  # --- AI Tag mutations ---
+  # Replace all tags on a file (source of truth: file_tags table)
+  updateFileTags(file_id: UUID!, tags: [String!]!): File!
+
+  # Manually trigger AI tag generation for a file
+  generateAiTags(file_id: UUID!): AiTagJob!
+
+  # Generate AI description for a file (synchronous, cached)
+  generateAiDescription(file_id: UUID!): AiDescriptionResult!
+
+  # Bulk trigger AI tagging for multiple files
+  bulkGenerateAiTags(file_ids: [UUID!]!): BulkAiTagResult!
+
   # Admin-only mutations
   # Admin delete file (mirrors DELETE /api/v1/admin/files/{id})
   adminDeleteFile(id: UUID!): Boolean!
+}
+
+# --- AI Tags types ---
+
+# A tag with metadata from the file_tags table
+type FileTagInfo {
+  name: String!
+  is_ai_generated: Boolean!
+  confidence: Float!
+  count: Int!
+}
+
+# Status of an AI tag generation job (V2: includes description + folder)
+type AiTagJob {
+  id: UUID!
+  file_id: UUID!
+  status: String!
+  suggested_tags: [String!]!
+  confidence_scores: [Float!]!
+  ai_description: String!
+  suggested_folder: String
+  error_message: String
+  created_at: DateTime!
+  completed_at: DateTime
+}
+
+# Result from AI description generation
+type AiDescriptionResult {
+  file_id: UUID!
+  description: String!
+  status: String!
+}
+
+# Result from bulk AI tag generation
+type BulkAiTagResult {
+  queued_count: Int!
+  skipped_count: Int!
+  status: String!
+  message: String!
+}
+
+# Full AI analysis result (tags + description + folder)
+type AiAnalysisResult {
+  file_id: UUID!
+  suggested_tags: [String!]!
+  confidence_scores: [Float!]!
+  description: String!
+  suggested_folder: String
+  status: String!
+}
+
+# Search suggestion (tag or file match)
+type SearchSuggestion {
+  type: String!
+  value: String!
+  id: String!
+  count: Int!
 }
 
 # Note: File upload and download remain REST-only as specified

@@ -18,14 +18,16 @@ type FilesHandlers struct {
 	fileService    *services.FileService
 	storageService *services.StorageService
 	authService    *services.AuthService
+	aiTagService   *services.AiTagService
 }
 
 // NewFilesHandlers creates a new FilesHandlers instance
-func NewFilesHandlers(fileService *services.FileService, storageService *services.StorageService, authService *services.AuthService) *FilesHandlers {
+func NewFilesHandlers(fileService *services.FileService, storageService *services.StorageService, authService *services.AuthService, aiTagService *services.AiTagService) *FilesHandlers {
 	return &FilesHandlers{
 		fileService:    fileService,
 		storageService: storageService,
 		authService:    authService,
+		aiTagService:   aiTagService,
 	}
 }
 
@@ -377,9 +379,175 @@ func (h *FilesHandlers) HandleFileUpload(w http.ResponseWriter, r *http.Request)
 		IsDuplicate: result.IsDeuplicate,
 	}
 
+	if !result.IsDeuplicate && h.aiTagService != nil && h.aiTagService.IsEnabled() {
+		services.TryRunBackground(func() { h.aiTagService.GenerateTagsForFile(result.File.ID, userID) })
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
+}
+
+// HandleGetAiTags handles GET /files/{id}/ai-tags - get AI tag generation status (V2: includes description + folder)
+func (h *FilesHandlers) HandleGetAiTags(w http.ResponseWriter, r *http.Request) {
+	userID, err := h.extractUserFromAuth(r)
+	if err != nil {
+		h.writeErrorResponse(w, "UNAUTHORIZED", "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	vars := mux.Vars(r)
+	fileID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.writeErrorResponse(w, "INVALID_ID", "Invalid file ID format", http.StatusBadRequest)
+		return
+	}
+
+	job, err := h.aiTagService.GetAiTagJob(fileID, userID)
+	if err != nil {
+		h.writeErrorResponse(w, "NOT_FOUND", err.Error(), http.StatusNotFound)
+		return
+	}
+
+	// V2: If no job found, auto-trigger and return 202
+	if job == nil {
+		if h.aiTagService.IsEnabled() {
+			services.TryRunBackground(func() { h.aiTagService.GenerateTagsForFile(fileID, userID) })
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusAccepted)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"file_id":           fileID.String(),
+				"suggested_tags":    []string{},
+				"confidence_scores": []float64{},
+				"ai_description":    "",
+				"suggested_folder":  "",
+				"status":            "processing",
+			})
+		} else {
+			h.writeErrorResponse(w, "UNAVAILABLE", "AI service not configured", http.StatusServiceUnavailable)
+		}
+		return
+	}
+
+	// V2: If still processing, return 202
+	w.Header().Set("Content-Type", "application/json")
+	if job.Status == "pending" || job.Status == "processing" {
+		w.WriteHeader(http.StatusAccepted)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+	json.NewEncoder(w).Encode(job)
+}
+
+// HandleTriggerAiTags handles POST /files/{id}/ai-tags - trigger/re-trigger AI tagging
+func (h *FilesHandlers) HandleTriggerAiTags(w http.ResponseWriter, r *http.Request) {
+	userID, err := h.extractUserFromAuth(r)
+	if err != nil {
+		h.writeErrorResponse(w, "UNAUTHORIZED", "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	vars := mux.Vars(r)
+	fileID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.writeErrorResponse(w, "INVALID_ID", "Invalid file ID format", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.aiTagService.ResetAndTrigger(fileID, userID); err != nil {
+		if strings.Contains(err.Error(), "daily AI limit") {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusTooManyRequests)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": "Daily AI limit reached",
+			})
+			return
+		}
+		h.writeErrorResponse(w, "ERROR", err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"file_id": fileID.String(),
+		"status":  "processing",
+		"message": "AI analysis queued",
+	})
+}
+
+// HandleAiDescribe handles POST /files/{id}/ai-describe - generate AI description
+func (h *FilesHandlers) HandleAiDescribe(w http.ResponseWriter, r *http.Request) {
+	userID, err := h.extractUserFromAuth(r)
+	if err != nil {
+		h.writeErrorResponse(w, "UNAUTHORIZED", "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	vars := mux.Vars(r)
+	fileID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.writeErrorResponse(w, "INVALID_ID", "Invalid file ID format", http.StatusBadRequest)
+		return
+	}
+
+	result, err := h.aiTagService.GenerateDescription(fileID, userID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			h.writeErrorResponse(w, "NOT_FOUND", "File not found", http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "unavailable") {
+			h.writeErrorResponse(w, "UNAVAILABLE", "AI service unavailable", http.StatusServiceUnavailable)
+		} else {
+			h.writeErrorResponse(w, "ERROR", err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
+}
+
+// HandleBulkAiTags handles POST /files/bulk-ai-tags - bulk trigger AI tagging
+func (h *FilesHandlers) HandleBulkAiTags(w http.ResponseWriter, r *http.Request) {
+	userID, err := h.extractUserFromAuth(r)
+	if err != nil {
+		h.writeErrorResponse(w, "UNAUTHORIZED", "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		FileIDs []string `json:"file_ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeErrorResponse(w, "INVALID_REQUEST", "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Parse UUIDs
+	var fileIDs []uuid.UUID
+	for _, idStr := range req.FileIDs {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			continue // skip invalid IDs
+		}
+		fileIDs = append(fileIDs, id)
+	}
+
+	if len(fileIDs) == 0 {
+		h.writeErrorResponse(w, "INVALID_REQUEST", "No valid file IDs provided", http.StatusBadRequest)
+		return
+	}
+
+	result, err := h.aiTagService.BulkGenerateTags(fileIDs, userID)
+	if err != nil {
+		h.writeErrorResponse(w, "ERROR", err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(result)
 }
 
 // HandleFileDetails handles GET /files/{id} - get file details
@@ -528,7 +696,13 @@ func (h *FilesHandlers) HandleFileDownload(w http.ResponseWriter, r *http.Reques
 
 	// Set headers for file download
 	w.Header().Set("Content-Type", file.MimeType)
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", file.OriginalFilename))
+	safeName := strings.Map(func(r rune) rune {
+		if r == '"' || r == '\\' || r == '\n' || r == '\r' {
+			return '_'
+		}
+		return r
+	}, file.OriginalFilename)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, safeName))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", file.SizeBytes))
 
 	// Stream file content

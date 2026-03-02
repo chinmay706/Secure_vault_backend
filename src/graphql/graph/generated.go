@@ -95,13 +95,49 @@ type ComplexityRoot struct {
 		UsersByRegistrationDate func(childComplexity int) int
 	}
 
+	AiAnalysisResult struct {
+		ConfidenceScores func(childComplexity int) int
+		Description      func(childComplexity int) int
+		FileID           func(childComplexity int) int
+		Status           func(childComplexity int) int
+		SuggestedFolder  func(childComplexity int) int
+		SuggestedTags    func(childComplexity int) int
+	}
+
+	AiDescriptionResult struct {
+		Description func(childComplexity int) int
+		FileID      func(childComplexity int) int
+		Status      func(childComplexity int) int
+	}
+
+	AiTagJob struct {
+		AiDescription    func(childComplexity int) int
+		CompletedAt      func(childComplexity int) int
+		ConfidenceScores func(childComplexity int) int
+		CreatedAt        func(childComplexity int) int
+		ErrorMessage     func(childComplexity int) int
+		FileID           func(childComplexity int) int
+		ID               func(childComplexity int) int
+		Status           func(childComplexity int) int
+		SuggestedFolder  func(childComplexity int) int
+		SuggestedTags    func(childComplexity int) int
+	}
+
 	AuthPayload struct {
 		Token func(childComplexity int) int
 		User  func(childComplexity int) int
 	}
 
+	BulkAiTagResult struct {
+		Message      func(childComplexity int) int
+		QueuedCount  func(childComplexity int) int
+		SkippedCount func(childComplexity int) int
+		Status       func(childComplexity int) int
+	}
+
 	File struct {
 		CreatedAt        func(childComplexity int) int
+		DeletedAt        func(childComplexity int) int
 		DownloadCount    func(childComplexity int) int
 		FolderID         func(childComplexity int) int
 		ID               func(childComplexity int) int
@@ -122,6 +158,13 @@ type ComplexityRoot struct {
 		Total    func(childComplexity int) int
 	}
 
+	FileTagInfo struct {
+		Confidence    func(childComplexity int) int
+		Count         func(childComplexity int) int
+		IsAiGenerated func(childComplexity int) int
+		Name          func(childComplexity int) int
+	}
+
 	FileTypeEntry struct {
 		Count    func(childComplexity int) int
 		MimeType func(childComplexity int) int
@@ -129,6 +172,7 @@ type ComplexityRoot struct {
 
 	Folder struct {
 		CreatedAt func(childComplexity int) int
+		DeletedAt func(childComplexity int) int
 		ID        func(childComplexity int) int
 		Name      func(childComplexity int) int
 		OwnerID   func(childComplexity int) int
@@ -158,16 +202,27 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AdminDeleteFile       func(childComplexity int, id uuid.UUID) int
+		BulkGenerateAiTags    func(childComplexity int, fileIds []uuid.UUID) int
 		CreateFolder          func(childComplexity int, name string, parentID *uuid.UUID) int
 		CreateFolderShareLink func(childComplexity int, id uuid.UUID) int
 		DeleteFile            func(childComplexity int, id uuid.UUID) int
 		DeleteFolder          func(childComplexity int, id uuid.UUID, recursive *bool) int
 		DeleteFolderShareLink func(childComplexity int, id uuid.UUID) int
+		EmptyTrash            func(childComplexity int) int
+		GenerateAiDescription func(childComplexity int, fileID uuid.UUID) int
+		GenerateAiTags        func(childComplexity int, fileID uuid.UUID) int
 		Login                 func(childComplexity int, email string, password string) int
 		MoveFile              func(childComplexity int, fileID uuid.UUID, folderID *uuid.UUID) int
 		MoveFolder            func(childComplexity int, id uuid.UUID, parentID *uuid.UUID) int
+		PermanentDeleteFile   func(childComplexity int, id uuid.UUID) int
+		PermanentDeleteFolder func(childComplexity int, id uuid.UUID) int
+		RestoreFile           func(childComplexity int, id uuid.UUID) int
+		RestoreFolder         func(childComplexity int, id uuid.UUID) int
 		Signup                func(childComplexity int, email string, password string) int
 		ToggleFilePublic      func(childComplexity int, id uuid.UUID, isPublic bool) int
+		TrashFile             func(childComplexity int, id uuid.UUID) int
+		TrashFolder           func(childComplexity int, id uuid.UUID, recursive *bool) int
+		UpdateFileTags        func(childComplexity int, fileID uuid.UUID, tags []string) int
 		UpdateFolder          func(childComplexity int, id uuid.UUID, name *string) int
 	}
 
@@ -179,24 +234,38 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AdminFiles   func(childComplexity int, userID *uuid.UUID, userEmail *string, filename *string, mimeType *string, tags *string, page *int, pageSize *int) int
-		AdminStats   func(childComplexity int) int
-		AllFolders   func(childComplexity int) int
-		File         func(childComplexity int, id uuid.UUID) int
-		Files        func(childComplexity int, filename *string, mimeType *string, folderID *uuid.UUID, tags *string, page *int, pageSize *int) int
-		Folder       func(childComplexity int, id uuid.UUID) int
-		Folders      func(childComplexity int, parentID *uuid.UUID) int
-		FoldersOnly  func(childComplexity int, parentID *uuid.UUID) int
-		Hello        func(childComplexity int) int
-		Me           func(childComplexity int) int
-		PublicFile   func(childComplexity int, token string) int
-		PublicFolder func(childComplexity int, token string, page *int, pageSize *int) int
-		Stats        func(childComplexity int, from *string, to *string, groupBy *string) int
+		AdminFiles        func(childComplexity int, userID *uuid.UUID, userEmail *string, filename *string, mimeType *string, tags *string, page *int, pageSize *int) int
+		AdminStats        func(childComplexity int) int
+		AiAnalysis        func(childComplexity int, fileID uuid.UUID) int
+		AiDescription     func(childComplexity int, fileID uuid.UUID) int
+		AiTags            func(childComplexity int, fileID uuid.UUID) int
+		AllFolders        func(childComplexity int) int
+		AllTags           func(childComplexity int) int
+		File              func(childComplexity int, id uuid.UUID) int
+		Files             func(childComplexity int, filename *string, mimeType *string, folderID *uuid.UUID, tags *string, page *int, pageSize *int) int
+		Folder            func(childComplexity int, id uuid.UUID) int
+		Folders           func(childComplexity int, parentID *uuid.UUID) int
+		FoldersOnly       func(childComplexity int, parentID *uuid.UUID) int
+		Hello             func(childComplexity int) int
+		Me                func(childComplexity int) int
+		PopularTags       func(childComplexity int, limit *int) int
+		PublicFile        func(childComplexity int, token string) int
+		PublicFolder      func(childComplexity int, token string, page *int, pageSize *int) int
+		SearchSuggestions func(childComplexity int, query string, limit *int) int
+		Stats             func(childComplexity int, from *string, to *string, groupBy *string) int
+		Trash             func(childComplexity int, page *int, pageSize *int) int
 	}
 
 	RegistrationEntry struct {
 		Count func(childComplexity int) int
 		Date  func(childComplexity int) int
+	}
+
+	SearchSuggestion struct {
+		Count func(childComplexity int) int
+		ID    func(childComplexity int) int
+		Type  func(childComplexity int) int
+		Value func(childComplexity int) int
 	}
 
 	ShareLink struct {
@@ -215,6 +284,14 @@ type ComplexityRoot struct {
 		TotalFiles          func(childComplexity int) int
 		TotalSizeBytes      func(childComplexity int) int
 		UploadHistory       func(childComplexity int) int
+	}
+
+	TrashResponse struct {
+		Files    func(childComplexity int) int
+		Folders  func(childComplexity int) int
+		Page     func(childComplexity int) int
+		PageSize func(childComplexity int) int
+		Total    func(childComplexity int) int
 	}
 
 	UploadHistoryEntry struct {
@@ -274,6 +351,17 @@ type MutationResolver interface {
 	DeleteFolder(ctx context.Context, id uuid.UUID, recursive *bool) (bool, error)
 	CreateFolderShareLink(ctx context.Context, id uuid.UUID) (*models.ShareLink, error)
 	DeleteFolderShareLink(ctx context.Context, id uuid.UUID) (bool, error)
+	TrashFile(ctx context.Context, id uuid.UUID) (bool, error)
+	TrashFolder(ctx context.Context, id uuid.UUID, recursive *bool) (bool, error)
+	RestoreFile(ctx context.Context, id uuid.UUID) (*models.File, error)
+	RestoreFolder(ctx context.Context, id uuid.UUID) (*models.Folder, error)
+	PermanentDeleteFile(ctx context.Context, id uuid.UUID) (bool, error)
+	PermanentDeleteFolder(ctx context.Context, id uuid.UUID) (bool, error)
+	EmptyTrash(ctx context.Context) (bool, error)
+	UpdateFileTags(ctx context.Context, fileID uuid.UUID, tags []string) (*models.File, error)
+	GenerateAiTags(ctx context.Context, fileID uuid.UUID) (*model.AiTagJob, error)
+	GenerateAiDescription(ctx context.Context, fileID uuid.UUID) (*model.AiDescriptionResult, error)
+	BulkGenerateAiTags(ctx context.Context, fileIds []uuid.UUID) (*model.BulkAiTagResult, error)
 	AdminDeleteFile(ctx context.Context, id uuid.UUID) (bool, error)
 }
 type QueryResolver interface {
@@ -288,8 +376,15 @@ type QueryResolver interface {
 	Stats(ctx context.Context, from *string, to *string, groupBy *string) (*api.StatsResponse, error)
 	PublicFile(ctx context.Context, token string) (*models.File, error)
 	PublicFolder(ctx context.Context, token string, page *int, pageSize *int) (*api.FolderChildrenResponse, error)
+	Trash(ctx context.Context, page *int, pageSize *int) (*model.TrashResponse, error)
 	AdminFiles(ctx context.Context, userID *uuid.UUID, userEmail *string, filename *string, mimeType *string, tags *string, page *int, pageSize *int) (*api.AdminFilesResponse, error)
 	AdminStats(ctx context.Context) (*api.AdminStatsResponse, error)
+	AllTags(ctx context.Context) ([]*model.FileTagInfo, error)
+	PopularTags(ctx context.Context, limit *int) ([]*model.FileTagInfo, error)
+	SearchSuggestions(ctx context.Context, query string, limit *int) ([]*model.SearchSuggestion, error)
+	AiTags(ctx context.Context, fileID uuid.UUID) (*model.AiTagJob, error)
+	AiDescription(ctx context.Context, fileID uuid.UUID) (*model.AiDescriptionResult, error)
+	AiAnalysis(ctx context.Context, fileID uuid.UUID) (*model.AiAnalysisResult, error)
 }
 type StatsResponseResolver interface {
 	FilesByType(ctx context.Context, obj *api.StatsResponse) ([]*model.FileTypeEntry, error)
@@ -468,6 +563,123 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.AdminStatsResponse.UsersByRegistrationDate(childComplexity), true
 
+	case "AiAnalysisResult.confidence_scores":
+		if e.complexity.AiAnalysisResult.ConfidenceScores == nil {
+			break
+		}
+
+		return e.complexity.AiAnalysisResult.ConfidenceScores(childComplexity), true
+	case "AiAnalysisResult.description":
+		if e.complexity.AiAnalysisResult.Description == nil {
+			break
+		}
+
+		return e.complexity.AiAnalysisResult.Description(childComplexity), true
+	case "AiAnalysisResult.file_id":
+		if e.complexity.AiAnalysisResult.FileID == nil {
+			break
+		}
+
+		return e.complexity.AiAnalysisResult.FileID(childComplexity), true
+	case "AiAnalysisResult.status":
+		if e.complexity.AiAnalysisResult.Status == nil {
+			break
+		}
+
+		return e.complexity.AiAnalysisResult.Status(childComplexity), true
+	case "AiAnalysisResult.suggested_folder":
+		if e.complexity.AiAnalysisResult.SuggestedFolder == nil {
+			break
+		}
+
+		return e.complexity.AiAnalysisResult.SuggestedFolder(childComplexity), true
+	case "AiAnalysisResult.suggested_tags":
+		if e.complexity.AiAnalysisResult.SuggestedTags == nil {
+			break
+		}
+
+		return e.complexity.AiAnalysisResult.SuggestedTags(childComplexity), true
+
+	case "AiDescriptionResult.description":
+		if e.complexity.AiDescriptionResult.Description == nil {
+			break
+		}
+
+		return e.complexity.AiDescriptionResult.Description(childComplexity), true
+	case "AiDescriptionResult.file_id":
+		if e.complexity.AiDescriptionResult.FileID == nil {
+			break
+		}
+
+		return e.complexity.AiDescriptionResult.FileID(childComplexity), true
+	case "AiDescriptionResult.status":
+		if e.complexity.AiDescriptionResult.Status == nil {
+			break
+		}
+
+		return e.complexity.AiDescriptionResult.Status(childComplexity), true
+
+	case "AiTagJob.ai_description":
+		if e.complexity.AiTagJob.AiDescription == nil {
+			break
+		}
+
+		return e.complexity.AiTagJob.AiDescription(childComplexity), true
+	case "AiTagJob.completed_at":
+		if e.complexity.AiTagJob.CompletedAt == nil {
+			break
+		}
+
+		return e.complexity.AiTagJob.CompletedAt(childComplexity), true
+	case "AiTagJob.confidence_scores":
+		if e.complexity.AiTagJob.ConfidenceScores == nil {
+			break
+		}
+
+		return e.complexity.AiTagJob.ConfidenceScores(childComplexity), true
+	case "AiTagJob.created_at":
+		if e.complexity.AiTagJob.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.AiTagJob.CreatedAt(childComplexity), true
+	case "AiTagJob.error_message":
+		if e.complexity.AiTagJob.ErrorMessage == nil {
+			break
+		}
+
+		return e.complexity.AiTagJob.ErrorMessage(childComplexity), true
+	case "AiTagJob.file_id":
+		if e.complexity.AiTagJob.FileID == nil {
+			break
+		}
+
+		return e.complexity.AiTagJob.FileID(childComplexity), true
+	case "AiTagJob.id":
+		if e.complexity.AiTagJob.ID == nil {
+			break
+		}
+
+		return e.complexity.AiTagJob.ID(childComplexity), true
+	case "AiTagJob.status":
+		if e.complexity.AiTagJob.Status == nil {
+			break
+		}
+
+		return e.complexity.AiTagJob.Status(childComplexity), true
+	case "AiTagJob.suggested_folder":
+		if e.complexity.AiTagJob.SuggestedFolder == nil {
+			break
+		}
+
+		return e.complexity.AiTagJob.SuggestedFolder(childComplexity), true
+	case "AiTagJob.suggested_tags":
+		if e.complexity.AiTagJob.SuggestedTags == nil {
+			break
+		}
+
+		return e.complexity.AiTagJob.SuggestedTags(childComplexity), true
+
 	case "AuthPayload.token":
 		if e.complexity.AuthPayload.Token == nil {
 			break
@@ -481,12 +693,43 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.AuthPayload.User(childComplexity), true
 
+	case "BulkAiTagResult.message":
+		if e.complexity.BulkAiTagResult.Message == nil {
+			break
+		}
+
+		return e.complexity.BulkAiTagResult.Message(childComplexity), true
+	case "BulkAiTagResult.queued_count":
+		if e.complexity.BulkAiTagResult.QueuedCount == nil {
+			break
+		}
+
+		return e.complexity.BulkAiTagResult.QueuedCount(childComplexity), true
+	case "BulkAiTagResult.skipped_count":
+		if e.complexity.BulkAiTagResult.SkippedCount == nil {
+			break
+		}
+
+		return e.complexity.BulkAiTagResult.SkippedCount(childComplexity), true
+	case "BulkAiTagResult.status":
+		if e.complexity.BulkAiTagResult.Status == nil {
+			break
+		}
+
+		return e.complexity.BulkAiTagResult.Status(childComplexity), true
+
 	case "File.created_at":
 		if e.complexity.File.CreatedAt == nil {
 			break
 		}
 
 		return e.complexity.File.CreatedAt(childComplexity), true
+	case "File.deleted_at":
+		if e.complexity.File.DeletedAt == nil {
+			break
+		}
+
+		return e.complexity.File.DeletedAt(childComplexity), true
 	case "File.download_count":
 		if e.complexity.File.DownloadCount == nil {
 			break
@@ -579,6 +822,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.FileListResponse.Total(childComplexity), true
 
+	case "FileTagInfo.confidence":
+		if e.complexity.FileTagInfo.Confidence == nil {
+			break
+		}
+
+		return e.complexity.FileTagInfo.Confidence(childComplexity), true
+	case "FileTagInfo.count":
+		if e.complexity.FileTagInfo.Count == nil {
+			break
+		}
+
+		return e.complexity.FileTagInfo.Count(childComplexity), true
+	case "FileTagInfo.is_ai_generated":
+		if e.complexity.FileTagInfo.IsAiGenerated == nil {
+			break
+		}
+
+		return e.complexity.FileTagInfo.IsAiGenerated(childComplexity), true
+	case "FileTagInfo.name":
+		if e.complexity.FileTagInfo.Name == nil {
+			break
+		}
+
+		return e.complexity.FileTagInfo.Name(childComplexity), true
+
 	case "FileTypeEntry.count":
 		if e.complexity.FileTypeEntry.Count == nil {
 			break
@@ -598,6 +866,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Folder.CreatedAt(childComplexity), true
+	case "Folder.deleted_at":
+		if e.complexity.Folder.DeletedAt == nil {
+			break
+		}
+
+		return e.complexity.Folder.DeletedAt(childComplexity), true
 	case "Folder.id":
 		if e.complexity.Folder.ID == nil {
 			break
@@ -709,6 +983,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.AdminDeleteFile(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.bulkGenerateAiTags":
+		if e.complexity.Mutation.BulkGenerateAiTags == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_bulkGenerateAiTags_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.BulkGenerateAiTags(childComplexity, args["file_ids"].([]uuid.UUID)), true
 	case "Mutation.createFolder":
 		if e.complexity.Mutation.CreateFolder == nil {
 			break
@@ -764,6 +1049,34 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteFolderShareLink(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.emptyTrash":
+		if e.complexity.Mutation.EmptyTrash == nil {
+			break
+		}
+
+		return e.complexity.Mutation.EmptyTrash(childComplexity), true
+	case "Mutation.generateAiDescription":
+		if e.complexity.Mutation.GenerateAiDescription == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_generateAiDescription_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.GenerateAiDescription(childComplexity, args["file_id"].(uuid.UUID)), true
+	case "Mutation.generateAiTags":
+		if e.complexity.Mutation.GenerateAiTags == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_generateAiTags_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.GenerateAiTags(childComplexity, args["file_id"].(uuid.UUID)), true
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
 			break
@@ -797,6 +1110,50 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.MoveFolder(childComplexity, args["id"].(uuid.UUID), args["parent_id"].(*uuid.UUID)), true
+	case "Mutation.permanentDeleteFile":
+		if e.complexity.Mutation.PermanentDeleteFile == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_permanentDeleteFile_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.PermanentDeleteFile(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.permanentDeleteFolder":
+		if e.complexity.Mutation.PermanentDeleteFolder == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_permanentDeleteFolder_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.PermanentDeleteFolder(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.restoreFile":
+		if e.complexity.Mutation.RestoreFile == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_restoreFile_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RestoreFile(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.restoreFolder":
+		if e.complexity.Mutation.RestoreFolder == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_restoreFolder_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RestoreFolder(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.signup":
 		if e.complexity.Mutation.Signup == nil {
 			break
@@ -819,6 +1176,39 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.ToggleFilePublic(childComplexity, args["id"].(uuid.UUID), args["is_public"].(bool)), true
+	case "Mutation.trashFile":
+		if e.complexity.Mutation.TrashFile == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_trashFile_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.TrashFile(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.trashFolder":
+		if e.complexity.Mutation.TrashFolder == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_trashFolder_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.TrashFolder(childComplexity, args["id"].(uuid.UUID), args["recursive"].(*bool)), true
+	case "Mutation.updateFileTags":
+		if e.complexity.Mutation.UpdateFileTags == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateFileTags_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateFileTags(childComplexity, args["file_id"].(uuid.UUID), args["tags"].([]string)), true
 	case "Mutation.updateFolder":
 		if e.complexity.Mutation.UpdateFolder == nil {
 			break
@@ -873,12 +1263,51 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.AdminStats(childComplexity), true
+	case "Query.aiAnalysis":
+		if e.complexity.Query.AiAnalysis == nil {
+			break
+		}
+
+		args, err := ec.field_Query_aiAnalysis_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AiAnalysis(childComplexity, args["file_id"].(uuid.UUID)), true
+	case "Query.aiDescription":
+		if e.complexity.Query.AiDescription == nil {
+			break
+		}
+
+		args, err := ec.field_Query_aiDescription_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AiDescription(childComplexity, args["file_id"].(uuid.UUID)), true
+	case "Query.aiTags":
+		if e.complexity.Query.AiTags == nil {
+			break
+		}
+
+		args, err := ec.field_Query_aiTags_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AiTags(childComplexity, args["file_id"].(uuid.UUID)), true
 	case "Query.allFolders":
 		if e.complexity.Query.AllFolders == nil {
 			break
 		}
 
 		return e.complexity.Query.AllFolders(childComplexity), true
+	case "Query.allTags":
+		if e.complexity.Query.AllTags == nil {
+			break
+		}
+
+		return e.complexity.Query.AllTags(childComplexity), true
 	case "Query.file":
 		if e.complexity.Query.File == nil {
 			break
@@ -946,6 +1375,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Me(childComplexity), true
+	case "Query.popularTags":
+		if e.complexity.Query.PopularTags == nil {
+			break
+		}
+
+		args, err := ec.field_Query_popularTags_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PopularTags(childComplexity, args["limit"].(*int)), true
 	case "Query.publicFile":
 		if e.complexity.Query.PublicFile == nil {
 			break
@@ -968,6 +1408,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.PublicFolder(childComplexity, args["token"].(string), args["page"].(*int), args["page_size"].(*int)), true
+	case "Query.searchSuggestions":
+		if e.complexity.Query.SearchSuggestions == nil {
+			break
+		}
+
+		args, err := ec.field_Query_searchSuggestions_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SearchSuggestions(childComplexity, args["query"].(string), args["limit"].(*int)), true
 	case "Query.stats":
 		if e.complexity.Query.Stats == nil {
 			break
@@ -979,6 +1430,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Stats(childComplexity, args["from"].(*string), args["to"].(*string), args["group_by"].(*string)), true
+	case "Query.trash":
+		if e.complexity.Query.Trash == nil {
+			break
+		}
+
+		args, err := ec.field_Query_trash_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Trash(childComplexity, args["page"].(*int), args["page_size"].(*int)), true
 
 	case "RegistrationEntry.count":
 		if e.complexity.RegistrationEntry.Count == nil {
@@ -992,6 +1454,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RegistrationEntry.Date(childComplexity), true
+
+	case "SearchSuggestion.count":
+		if e.complexity.SearchSuggestion.Count == nil {
+			break
+		}
+
+		return e.complexity.SearchSuggestion.Count(childComplexity), true
+	case "SearchSuggestion.id":
+		if e.complexity.SearchSuggestion.ID == nil {
+			break
+		}
+
+		return e.complexity.SearchSuggestion.ID(childComplexity), true
+	case "SearchSuggestion.type":
+		if e.complexity.SearchSuggestion.Type == nil {
+			break
+		}
+
+		return e.complexity.SearchSuggestion.Type(childComplexity), true
+	case "SearchSuggestion.value":
+		if e.complexity.SearchSuggestion.Value == nil {
+			break
+		}
+
+		return e.complexity.SearchSuggestion.Value(childComplexity), true
 
 	case "ShareLink.created_at":
 		if e.complexity.ShareLink.CreatedAt == nil {
@@ -1066,6 +1553,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.StatsResponse.UploadHistory(childComplexity), true
+
+	case "TrashResponse.files":
+		if e.complexity.TrashResponse.Files == nil {
+			break
+		}
+
+		return e.complexity.TrashResponse.Files(childComplexity), true
+	case "TrashResponse.folders":
+		if e.complexity.TrashResponse.Folders == nil {
+			break
+		}
+
+		return e.complexity.TrashResponse.Folders(childComplexity), true
+	case "TrashResponse.page":
+		if e.complexity.TrashResponse.Page == nil {
+			break
+		}
+
+		return e.complexity.TrashResponse.Page(childComplexity), true
+	case "TrashResponse.page_size":
+		if e.complexity.TrashResponse.PageSize == nil {
+			break
+		}
+
+		return e.complexity.TrashResponse.PageSize(childComplexity), true
+	case "TrashResponse.total":
+		if e.complexity.TrashResponse.Total == nil {
+			break
+		}
+
+		return e.complexity.TrashResponse.Total(childComplexity), true
 
 	case "UploadHistoryEntry.count":
 		if e.complexity.UploadHistoryEntry.Count == nil {
@@ -1288,6 +1806,17 @@ func (ec *executionContext) field_Mutation_adminDeleteFile_args(ctx context.Cont
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_bulkGenerateAiTags_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "file_ids", ec.unmarshalNUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ)
+	if err != nil {
+		return nil, err
+	}
+	args["file_ids"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createFolderShareLink_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1353,6 +1882,28 @@ func (ec *executionContext) field_Mutation_deleteFolder_args(ctx context.Context
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_generateAiDescription_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "file_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["file_id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_generateAiTags_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "file_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["file_id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1401,6 +1952,50 @@ func (ec *executionContext) field_Mutation_moveFolder_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_permanentDeleteFile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_permanentDeleteFolder_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_restoreFile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_restoreFolder_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_signup_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1430,6 +2025,49 @@ func (ec *executionContext) field_Mutation_toggleFilePublic_args(ctx context.Con
 		return nil, err
 	}
 	args["is_public"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_trashFile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_trashFolder_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "recursive", ec.unmarshalOBoolean2ᚖbool)
+	if err != nil {
+		return nil, err
+	}
+	args["recursive"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateFileTags_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "file_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["file_id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "tags", ec.unmarshalNString2ᚕstringᚄ)
+	if err != nil {
+		return nil, err
+	}
+	args["tags"] = arg1
 	return args, nil
 }
 
@@ -1498,6 +2136,39 @@ func (ec *executionContext) field_Query_adminFiles_args(ctx context.Context, raw
 		return nil, err
 	}
 	args["page_size"] = arg6
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_aiAnalysis_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "file_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["file_id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_aiDescription_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "file_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["file_id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_aiTags_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "file_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["file_id"] = arg0
 	return args, nil
 }
 
@@ -1581,6 +2252,17 @@ func (ec *executionContext) field_Query_folders_args(ctx context.Context, rawArg
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_popularTags_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_publicFile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1613,6 +2295,22 @@ func (ec *executionContext) field_Query_publicFolder_args(ctx context.Context, r
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_searchSuggestions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "query", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["query"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_stats_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1631,6 +2329,22 @@ func (ec *executionContext) field_Query_stats_args(ctx context.Context, rawArgs 
 		return nil, err
 	}
 	args["group_by"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_trash_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["page"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "page_size", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["page_size"] = arg1
 	return args, nil
 }
 
@@ -2477,6 +3191,557 @@ func (ec *executionContext) fieldContext_AdminStatsResponse_most_active_users(_ 
 	return fc, nil
 }
 
+func (ec *executionContext) _AiAnalysisResult_file_id(ctx context.Context, field graphql.CollectedField, obj *model.AiAnalysisResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiAnalysisResult_file_id,
+		func(ctx context.Context) (any, error) {
+			return obj.FileID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiAnalysisResult_file_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiAnalysisResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiAnalysisResult_suggested_tags(ctx context.Context, field graphql.CollectedField, obj *model.AiAnalysisResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiAnalysisResult_suggested_tags,
+		func(ctx context.Context) (any, error) {
+			return obj.SuggestedTags, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiAnalysisResult_suggested_tags(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiAnalysisResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiAnalysisResult_confidence_scores(ctx context.Context, field graphql.CollectedField, obj *model.AiAnalysisResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiAnalysisResult_confidence_scores,
+		func(ctx context.Context) (any, error) {
+			return obj.ConfidenceScores, nil
+		},
+		nil,
+		ec.marshalNFloat2ᚕfloat64ᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiAnalysisResult_confidence_scores(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiAnalysisResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiAnalysisResult_description(ctx context.Context, field graphql.CollectedField, obj *model.AiAnalysisResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiAnalysisResult_description,
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiAnalysisResult_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiAnalysisResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiAnalysisResult_suggested_folder(ctx context.Context, field graphql.CollectedField, obj *model.AiAnalysisResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiAnalysisResult_suggested_folder,
+		func(ctx context.Context) (any, error) {
+			return obj.SuggestedFolder, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiAnalysisResult_suggested_folder(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiAnalysisResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiAnalysisResult_status(ctx context.Context, field graphql.CollectedField, obj *model.AiAnalysisResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiAnalysisResult_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiAnalysisResult_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiAnalysisResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiDescriptionResult_file_id(ctx context.Context, field graphql.CollectedField, obj *model.AiDescriptionResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiDescriptionResult_file_id,
+		func(ctx context.Context) (any, error) {
+			return obj.FileID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiDescriptionResult_file_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiDescriptionResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiDescriptionResult_description(ctx context.Context, field graphql.CollectedField, obj *model.AiDescriptionResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiDescriptionResult_description,
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiDescriptionResult_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiDescriptionResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiDescriptionResult_status(ctx context.Context, field graphql.CollectedField, obj *model.AiDescriptionResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiDescriptionResult_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiDescriptionResult_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiDescriptionResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiTagJob_id(ctx context.Context, field graphql.CollectedField, obj *model.AiTagJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiTagJob_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiTagJob_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiTagJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiTagJob_file_id(ctx context.Context, field graphql.CollectedField, obj *model.AiTagJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiTagJob_file_id,
+		func(ctx context.Context) (any, error) {
+			return obj.FileID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiTagJob_file_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiTagJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiTagJob_status(ctx context.Context, field graphql.CollectedField, obj *model.AiTagJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiTagJob_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiTagJob_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiTagJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiTagJob_suggested_tags(ctx context.Context, field graphql.CollectedField, obj *model.AiTagJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiTagJob_suggested_tags,
+		func(ctx context.Context) (any, error) {
+			return obj.SuggestedTags, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiTagJob_suggested_tags(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiTagJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiTagJob_confidence_scores(ctx context.Context, field graphql.CollectedField, obj *model.AiTagJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiTagJob_confidence_scores,
+		func(ctx context.Context) (any, error) {
+			return obj.ConfidenceScores, nil
+		},
+		nil,
+		ec.marshalNFloat2ᚕfloat64ᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiTagJob_confidence_scores(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiTagJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiTagJob_ai_description(ctx context.Context, field graphql.CollectedField, obj *model.AiTagJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiTagJob_ai_description,
+		func(ctx context.Context) (any, error) {
+			return obj.AiDescription, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiTagJob_ai_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiTagJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiTagJob_suggested_folder(ctx context.Context, field graphql.CollectedField, obj *model.AiTagJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiTagJob_suggested_folder,
+		func(ctx context.Context) (any, error) {
+			return obj.SuggestedFolder, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiTagJob_suggested_folder(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiTagJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiTagJob_error_message(ctx context.Context, field graphql.CollectedField, obj *model.AiTagJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiTagJob_error_message,
+		func(ctx context.Context) (any, error) {
+			return obj.ErrorMessage, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiTagJob_error_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiTagJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiTagJob_created_at(ctx context.Context, field graphql.CollectedField, obj *model.AiTagJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiTagJob_created_at,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNDateTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiTagJob_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiTagJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AiTagJob_completed_at(ctx context.Context, field graphql.CollectedField, obj *model.AiTagJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AiTagJob_completed_at,
+		func(ctx context.Context) (any, error) {
+			return obj.CompletedAt, nil
+		},
+		nil,
+		ec.marshalODateTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_AiTagJob_completed_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AiTagJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _AuthPayload_token(ctx context.Context, field graphql.CollectedField, obj *model.AuthPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2544,6 +3809,122 @@ func (ec *executionContext) fieldContext_AuthPayload_user(_ context.Context, fie
 				return ec.fieldContext_User_created_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BulkAiTagResult_queued_count(ctx context.Context, field graphql.CollectedField, obj *model.BulkAiTagResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BulkAiTagResult_queued_count,
+		func(ctx context.Context) (any, error) {
+			return obj.QueuedCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BulkAiTagResult_queued_count(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BulkAiTagResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BulkAiTagResult_skipped_count(ctx context.Context, field graphql.CollectedField, obj *model.BulkAiTagResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BulkAiTagResult_skipped_count,
+		func(ctx context.Context) (any, error) {
+			return obj.SkippedCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BulkAiTagResult_skipped_count(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BulkAiTagResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BulkAiTagResult_status(ctx context.Context, field graphql.CollectedField, obj *model.BulkAiTagResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BulkAiTagResult_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BulkAiTagResult_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BulkAiTagResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BulkAiTagResult_message(ctx context.Context, field graphql.CollectedField, obj *model.BulkAiTagResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BulkAiTagResult_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BulkAiTagResult_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BulkAiTagResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2868,6 +4249,35 @@ func (ec *executionContext) fieldContext_File_updated_at(_ context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _File_deleted_at(ctx context.Context, field graphql.CollectedField, obj *models.File) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_File_deleted_at,
+		func(ctx context.Context) (any, error) {
+			return obj.DeletedAt, nil
+		},
+		nil,
+		ec.marshalODateTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_File_deleted_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "File",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _File_share_link(ctx context.Context, field graphql.CollectedField, obj *models.File) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2955,6 +4365,8 @@ func (ec *executionContext) fieldContext_FileListResponse_files(_ context.Contex
 				return ec.fieldContext_File_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_File_share_link(ctx, field)
 			}
@@ -3041,6 +4453,122 @@ func (ec *executionContext) _FileListResponse_total(ctx context.Context, field g
 func (ec *executionContext) fieldContext_FileListResponse_total(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "FileListResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FileTagInfo_name(ctx context.Context, field graphql.CollectedField, obj *model.FileTagInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FileTagInfo_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FileTagInfo_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FileTagInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FileTagInfo_is_ai_generated(ctx context.Context, field graphql.CollectedField, obj *model.FileTagInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FileTagInfo_is_ai_generated,
+		func(ctx context.Context) (any, error) {
+			return obj.IsAiGenerated, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FileTagInfo_is_ai_generated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FileTagInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FileTagInfo_confidence(ctx context.Context, field graphql.CollectedField, obj *model.FileTagInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FileTagInfo_confidence,
+		func(ctx context.Context) (any, error) {
+			return obj.Confidence, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FileTagInfo_confidence(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FileTagInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FileTagInfo_count(ctx context.Context, field graphql.CollectedField, obj *model.FileTagInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FileTagInfo_count,
+		func(ctx context.Context) (any, error) {
+			return obj.Count, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FileTagInfo_count(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FileTagInfo",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -3283,6 +4811,35 @@ func (ec *executionContext) fieldContext_Folder_updated_at(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Folder_deleted_at(ctx context.Context, field graphql.CollectedField, obj *models.Folder) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Folder_deleted_at,
+		func(ctx context.Context) (any, error) {
+			return obj.DeletedAt, nil
+		},
+		nil,
+		ec.marshalODateTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Folder_deleted_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Folder",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Folder_share_link(ctx context.Context, field graphql.CollectedField, obj *models.Folder) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3360,6 +4917,8 @@ func (ec *executionContext) fieldContext_FolderChildrenResponse_folders(_ contex
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -3415,6 +4974,8 @@ func (ec *executionContext) fieldContext_FolderChildrenResponse_files(_ context.
 				return ec.fieldContext_File_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_File_share_link(ctx, field)
 			}
@@ -3501,6 +5062,8 @@ func (ec *executionContext) fieldContext_FolderDetailsResponse_folder(_ context.
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -3546,6 +5109,8 @@ func (ec *executionContext) fieldContext_FolderDetailsResponse_breadcrumbs(_ con
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -3841,6 +5406,8 @@ func (ec *executionContext) fieldContext_Mutation_toggleFilePublic(ctx context.C
 				return ec.fieldContext_File_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_File_share_link(ctx, field)
 			}
@@ -3949,6 +5516,8 @@ func (ec *executionContext) fieldContext_Mutation_moveFile(ctx context.Context, 
 				return ec.fieldContext_File_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_File_share_link(ctx, field)
 			}
@@ -4006,6 +5575,8 @@ func (ec *executionContext) fieldContext_Mutation_createFolder(ctx context.Conte
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -4063,6 +5634,8 @@ func (ec *executionContext) fieldContext_Mutation_updateFolder(ctx context.Conte
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -4120,6 +5693,8 @@ func (ec *executionContext) fieldContext_Mutation_moveFolder(ctx context.Context
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -4269,6 +5844,559 @@ func (ec *executionContext) fieldContext_Mutation_deleteFolderShareLink(ctx cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteFolderShareLink_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_trashFile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_trashFile,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().TrashFile(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_trashFile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_trashFile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_trashFolder(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_trashFolder,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().TrashFolder(ctx, fc.Args["id"].(uuid.UUID), fc.Args["recursive"].(*bool))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_trashFolder(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_trashFolder_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_restoreFile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_restoreFile,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RestoreFile(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNFile2ᚖsecurevaultᚑbackendᚋsrcᚋmodelsᚐFile,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_restoreFile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_File_id(ctx, field)
+			case "owner_id":
+				return ec.fieldContext_File_owner_id(ctx, field)
+			case "original_filename":
+				return ec.fieldContext_File_original_filename(ctx, field)
+			case "mime_type":
+				return ec.fieldContext_File_mime_type(ctx, field)
+			case "size_bytes":
+				return ec.fieldContext_File_size_bytes(ctx, field)
+			case "folder_id":
+				return ec.fieldContext_File_folder_id(ctx, field)
+			case "is_public":
+				return ec.fieldContext_File_is_public(ctx, field)
+			case "download_count":
+				return ec.fieldContext_File_download_count(ctx, field)
+			case "tags":
+				return ec.fieldContext_File_tags(ctx, field)
+			case "created_at":
+				return ec.fieldContext_File_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
+			case "share_link":
+				return ec.fieldContext_File_share_link(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_restoreFile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_restoreFolder(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_restoreFolder,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RestoreFolder(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNFolder2ᚖsecurevaultᚑbackendᚋsrcᚋmodelsᚐFolder,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_restoreFolder(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Folder_id(ctx, field)
+			case "owner_id":
+				return ec.fieldContext_Folder_owner_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Folder_name(ctx, field)
+			case "parent_id":
+				return ec.fieldContext_Folder_parent_id(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Folder_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
+			case "share_link":
+				return ec.fieldContext_Folder_share_link(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Folder", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_restoreFolder_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_permanentDeleteFile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_permanentDeleteFile,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().PermanentDeleteFile(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_permanentDeleteFile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_permanentDeleteFile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_permanentDeleteFolder(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_permanentDeleteFolder,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().PermanentDeleteFolder(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_permanentDeleteFolder(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_permanentDeleteFolder_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_emptyTrash(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_emptyTrash,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Mutation().EmptyTrash(ctx)
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_emptyTrash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateFileTags(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateFileTags,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateFileTags(ctx, fc.Args["file_id"].(uuid.UUID), fc.Args["tags"].([]string))
+		},
+		nil,
+		ec.marshalNFile2ᚖsecurevaultᚑbackendᚋsrcᚋmodelsᚐFile,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateFileTags(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_File_id(ctx, field)
+			case "owner_id":
+				return ec.fieldContext_File_owner_id(ctx, field)
+			case "original_filename":
+				return ec.fieldContext_File_original_filename(ctx, field)
+			case "mime_type":
+				return ec.fieldContext_File_mime_type(ctx, field)
+			case "size_bytes":
+				return ec.fieldContext_File_size_bytes(ctx, field)
+			case "folder_id":
+				return ec.fieldContext_File_folder_id(ctx, field)
+			case "is_public":
+				return ec.fieldContext_File_is_public(ctx, field)
+			case "download_count":
+				return ec.fieldContext_File_download_count(ctx, field)
+			case "tags":
+				return ec.fieldContext_File_tags(ctx, field)
+			case "created_at":
+				return ec.fieldContext_File_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
+			case "share_link":
+				return ec.fieldContext_File_share_link(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateFileTags_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_generateAiTags(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_generateAiTags,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().GenerateAiTags(ctx, fc.Args["file_id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNAiTagJob2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAiTagJob,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_generateAiTags(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_AiTagJob_id(ctx, field)
+			case "file_id":
+				return ec.fieldContext_AiTagJob_file_id(ctx, field)
+			case "status":
+				return ec.fieldContext_AiTagJob_status(ctx, field)
+			case "suggested_tags":
+				return ec.fieldContext_AiTagJob_suggested_tags(ctx, field)
+			case "confidence_scores":
+				return ec.fieldContext_AiTagJob_confidence_scores(ctx, field)
+			case "ai_description":
+				return ec.fieldContext_AiTagJob_ai_description(ctx, field)
+			case "suggested_folder":
+				return ec.fieldContext_AiTagJob_suggested_folder(ctx, field)
+			case "error_message":
+				return ec.fieldContext_AiTagJob_error_message(ctx, field)
+			case "created_at":
+				return ec.fieldContext_AiTagJob_created_at(ctx, field)
+			case "completed_at":
+				return ec.fieldContext_AiTagJob_completed_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AiTagJob", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_generateAiTags_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_generateAiDescription(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_generateAiDescription,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().GenerateAiDescription(ctx, fc.Args["file_id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNAiDescriptionResult2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAiDescriptionResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_generateAiDescription(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "file_id":
+				return ec.fieldContext_AiDescriptionResult_file_id(ctx, field)
+			case "description":
+				return ec.fieldContext_AiDescriptionResult_description(ctx, field)
+			case "status":
+				return ec.fieldContext_AiDescriptionResult_status(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AiDescriptionResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_generateAiDescription_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_bulkGenerateAiTags(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_bulkGenerateAiTags,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().BulkGenerateAiTags(ctx, fc.Args["file_ids"].([]uuid.UUID))
+		},
+		nil,
+		ec.marshalNBulkAiTagResult2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐBulkAiTagResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_bulkGenerateAiTags(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "queued_count":
+				return ec.fieldContext_BulkAiTagResult_queued_count(ctx, field)
+			case "skipped_count":
+				return ec.fieldContext_BulkAiTagResult_skipped_count(ctx, field)
+			case "status":
+				return ec.fieldContext_BulkAiTagResult_status(ctx, field)
+			case "message":
+				return ec.fieldContext_BulkAiTagResult_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BulkAiTagResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_bulkGenerateAiTags_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4641,6 +6769,8 @@ func (ec *executionContext) fieldContext_Query_foldersOnly(ctx context.Context, 
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -4697,6 +6827,8 @@ func (ec *executionContext) fieldContext_Query_allFolders(_ context.Context, fie
 				return ec.fieldContext_Folder_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_Folder_share_link(ctx, field)
 			}
@@ -4800,6 +6932,8 @@ func (ec *executionContext) fieldContext_Query_file(ctx context.Context, field g
 				return ec.fieldContext_File_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_File_share_link(ctx, field)
 			}
@@ -4924,6 +7058,8 @@ func (ec *executionContext) fieldContext_Query_publicFile(ctx context.Context, f
 				return ec.fieldContext_File_created_at(ctx, field)
 			case "updated_at":
 				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
 			case "share_link":
 				return ec.fieldContext_File_share_link(ctx, field)
 			}
@@ -4987,6 +7123,59 @@ func (ec *executionContext) fieldContext_Query_publicFolder(ctx context.Context,
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_publicFolder_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_trash(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_trash,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Trash(ctx, fc.Args["page"].(*int), fc.Args["page_size"].(*int))
+		},
+		nil,
+		ec.marshalNTrashResponse2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐTrashResponse,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_trash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "files":
+				return ec.fieldContext_TrashResponse_files(ctx, field)
+			case "folders":
+				return ec.fieldContext_TrashResponse_folders(ctx, field)
+			case "page":
+				return ec.fieldContext_TrashResponse_page(ctx, field)
+			case "page_size":
+				return ec.fieldContext_TrashResponse_page_size(ctx, field)
+			case "total":
+				return ec.fieldContext_TrashResponse_total(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TrashResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_trash_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5085,6 +7274,314 @@ func (ec *executionContext) fieldContext_Query_adminStats(_ context.Context, fie
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AdminStatsResponse", field.Name)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_allTags(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_allTags,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().AllTags(ctx)
+		},
+		nil,
+		ec.marshalNFileTagInfo2ᚕᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐFileTagInfoᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_allTags(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_FileTagInfo_name(ctx, field)
+			case "is_ai_generated":
+				return ec.fieldContext_FileTagInfo_is_ai_generated(ctx, field)
+			case "confidence":
+				return ec.fieldContext_FileTagInfo_confidence(ctx, field)
+			case "count":
+				return ec.fieldContext_FileTagInfo_count(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FileTagInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_popularTags(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_popularTags,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().PopularTags(ctx, fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalNFileTagInfo2ᚕᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐFileTagInfoᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_popularTags(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_FileTagInfo_name(ctx, field)
+			case "is_ai_generated":
+				return ec.fieldContext_FileTagInfo_is_ai_generated(ctx, field)
+			case "confidence":
+				return ec.fieldContext_FileTagInfo_confidence(ctx, field)
+			case "count":
+				return ec.fieldContext_FileTagInfo_count(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FileTagInfo", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_popularTags_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_searchSuggestions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_searchSuggestions,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().SearchSuggestions(ctx, fc.Args["query"].(string), fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalNSearchSuggestion2ᚕᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐSearchSuggestionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_searchSuggestions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "type":
+				return ec.fieldContext_SearchSuggestion_type(ctx, field)
+			case "value":
+				return ec.fieldContext_SearchSuggestion_value(ctx, field)
+			case "id":
+				return ec.fieldContext_SearchSuggestion_id(ctx, field)
+			case "count":
+				return ec.fieldContext_SearchSuggestion_count(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SearchSuggestion", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_searchSuggestions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_aiTags(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_aiTags,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().AiTags(ctx, fc.Args["file_id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalOAiTagJob2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAiTagJob,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_aiTags(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_AiTagJob_id(ctx, field)
+			case "file_id":
+				return ec.fieldContext_AiTagJob_file_id(ctx, field)
+			case "status":
+				return ec.fieldContext_AiTagJob_status(ctx, field)
+			case "suggested_tags":
+				return ec.fieldContext_AiTagJob_suggested_tags(ctx, field)
+			case "confidence_scores":
+				return ec.fieldContext_AiTagJob_confidence_scores(ctx, field)
+			case "ai_description":
+				return ec.fieldContext_AiTagJob_ai_description(ctx, field)
+			case "suggested_folder":
+				return ec.fieldContext_AiTagJob_suggested_folder(ctx, field)
+			case "error_message":
+				return ec.fieldContext_AiTagJob_error_message(ctx, field)
+			case "created_at":
+				return ec.fieldContext_AiTagJob_created_at(ctx, field)
+			case "completed_at":
+				return ec.fieldContext_AiTagJob_completed_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AiTagJob", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_aiTags_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_aiDescription(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_aiDescription,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().AiDescription(ctx, fc.Args["file_id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNAiDescriptionResult2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAiDescriptionResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_aiDescription(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "file_id":
+				return ec.fieldContext_AiDescriptionResult_file_id(ctx, field)
+			case "description":
+				return ec.fieldContext_AiDescriptionResult_description(ctx, field)
+			case "status":
+				return ec.fieldContext_AiDescriptionResult_status(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AiDescriptionResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_aiDescription_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_aiAnalysis(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_aiAnalysis,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().AiAnalysis(ctx, fc.Args["file_id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNAiAnalysisResult2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAiAnalysisResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_aiAnalysis(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "file_id":
+				return ec.fieldContext_AiAnalysisResult_file_id(ctx, field)
+			case "suggested_tags":
+				return ec.fieldContext_AiAnalysisResult_suggested_tags(ctx, field)
+			case "confidence_scores":
+				return ec.fieldContext_AiAnalysisResult_confidence_scores(ctx, field)
+			case "description":
+				return ec.fieldContext_AiAnalysisResult_description(ctx, field)
+			case "suggested_folder":
+				return ec.fieldContext_AiAnalysisResult_suggested_folder(ctx, field)
+			case "status":
+				return ec.fieldContext_AiAnalysisResult_status(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AiAnalysisResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_aiAnalysis_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -5245,6 +7742,122 @@ func (ec *executionContext) _RegistrationEntry_count(ctx context.Context, field 
 func (ec *executionContext) fieldContext_RegistrationEntry_count(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "RegistrationEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchSuggestion_type(ctx context.Context, field graphql.CollectedField, obj *model.SearchSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SearchSuggestion_type,
+		func(ctx context.Context) (any, error) {
+			return obj.Type, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_SearchSuggestion_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchSuggestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchSuggestion_value(ctx context.Context, field graphql.CollectedField, obj *model.SearchSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SearchSuggestion_value,
+		func(ctx context.Context) (any, error) {
+			return obj.Value, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_SearchSuggestion_value(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchSuggestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchSuggestion_id(ctx context.Context, field graphql.CollectedField, obj *model.SearchSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SearchSuggestion_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_SearchSuggestion_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchSuggestion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchSuggestion_count(ctx context.Context, field graphql.CollectedField, obj *model.SearchSuggestion) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SearchSuggestion_count,
+		func(ctx context.Context) (any, error) {
+			return obj.Count, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_SearchSuggestion_count(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchSuggestion",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -5612,6 +8225,197 @@ func (ec *executionContext) fieldContext_StatsResponse_upload_history(_ context.
 				return ec.fieldContext_UploadHistoryEntry_total_size(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type UploadHistoryEntry", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrashResponse_files(ctx context.Context, field graphql.CollectedField, obj *model.TrashResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrashResponse_files,
+		func(ctx context.Context) (any, error) {
+			return obj.Files, nil
+		},
+		nil,
+		ec.marshalNFile2ᚕᚖsecurevaultᚑbackendᚋsrcᚋmodelsᚐFileᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrashResponse_files(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrashResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_File_id(ctx, field)
+			case "owner_id":
+				return ec.fieldContext_File_owner_id(ctx, field)
+			case "original_filename":
+				return ec.fieldContext_File_original_filename(ctx, field)
+			case "mime_type":
+				return ec.fieldContext_File_mime_type(ctx, field)
+			case "size_bytes":
+				return ec.fieldContext_File_size_bytes(ctx, field)
+			case "folder_id":
+				return ec.fieldContext_File_folder_id(ctx, field)
+			case "is_public":
+				return ec.fieldContext_File_is_public(ctx, field)
+			case "download_count":
+				return ec.fieldContext_File_download_count(ctx, field)
+			case "tags":
+				return ec.fieldContext_File_tags(ctx, field)
+			case "created_at":
+				return ec.fieldContext_File_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_File_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_File_deleted_at(ctx, field)
+			case "share_link":
+				return ec.fieldContext_File_share_link(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrashResponse_folders(ctx context.Context, field graphql.CollectedField, obj *model.TrashResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrashResponse_folders,
+		func(ctx context.Context) (any, error) {
+			return obj.Folders, nil
+		},
+		nil,
+		ec.marshalNFolder2ᚕᚖsecurevaultᚑbackendᚋsrcᚋmodelsᚐFolderᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrashResponse_folders(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrashResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Folder_id(ctx, field)
+			case "owner_id":
+				return ec.fieldContext_Folder_owner_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Folder_name(ctx, field)
+			case "parent_id":
+				return ec.fieldContext_Folder_parent_id(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Folder_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Folder_updated_at(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Folder_deleted_at(ctx, field)
+			case "share_link":
+				return ec.fieldContext_Folder_share_link(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Folder", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrashResponse_page(ctx context.Context, field graphql.CollectedField, obj *model.TrashResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrashResponse_page,
+		func(ctx context.Context) (any, error) {
+			return obj.Page, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrashResponse_page(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrashResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrashResponse_page_size(ctx context.Context, field graphql.CollectedField, obj *model.TrashResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrashResponse_page_size,
+		func(ctx context.Context) (any, error) {
+			return obj.PageSize, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrashResponse_page_size(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrashResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrashResponse_total(ctx context.Context, field graphql.CollectedField, obj *model.TrashResponse) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TrashResponse_total,
+		func(ctx context.Context) (any, error) {
+			return obj.Total, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TrashResponse_total(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrashResponse",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7766,6 +10570,191 @@ func (ec *executionContext) _AdminStatsResponse(ctx context.Context, sel ast.Sel
 	return out
 }
 
+var aiAnalysisResultImplementors = []string{"AiAnalysisResult"}
+
+func (ec *executionContext) _AiAnalysisResult(ctx context.Context, sel ast.SelectionSet, obj *model.AiAnalysisResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, aiAnalysisResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AiAnalysisResult")
+		case "file_id":
+			out.Values[i] = ec._AiAnalysisResult_file_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "suggested_tags":
+			out.Values[i] = ec._AiAnalysisResult_suggested_tags(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "confidence_scores":
+			out.Values[i] = ec._AiAnalysisResult_confidence_scores(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._AiAnalysisResult_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "suggested_folder":
+			out.Values[i] = ec._AiAnalysisResult_suggested_folder(ctx, field, obj)
+		case "status":
+			out.Values[i] = ec._AiAnalysisResult_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var aiDescriptionResultImplementors = []string{"AiDescriptionResult"}
+
+func (ec *executionContext) _AiDescriptionResult(ctx context.Context, sel ast.SelectionSet, obj *model.AiDescriptionResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, aiDescriptionResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AiDescriptionResult")
+		case "file_id":
+			out.Values[i] = ec._AiDescriptionResult_file_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._AiDescriptionResult_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._AiDescriptionResult_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var aiTagJobImplementors = []string{"AiTagJob"}
+
+func (ec *executionContext) _AiTagJob(ctx context.Context, sel ast.SelectionSet, obj *model.AiTagJob) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, aiTagJobImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AiTagJob")
+		case "id":
+			out.Values[i] = ec._AiTagJob_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "file_id":
+			out.Values[i] = ec._AiTagJob_file_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._AiTagJob_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "suggested_tags":
+			out.Values[i] = ec._AiTagJob_suggested_tags(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "confidence_scores":
+			out.Values[i] = ec._AiTagJob_confidence_scores(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ai_description":
+			out.Values[i] = ec._AiTagJob_ai_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "suggested_folder":
+			out.Values[i] = ec._AiTagJob_suggested_folder(ctx, field, obj)
+		case "error_message":
+			out.Values[i] = ec._AiTagJob_error_message(ctx, field, obj)
+		case "created_at":
+			out.Values[i] = ec._AiTagJob_created_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "completed_at":
+			out.Values[i] = ec._AiTagJob_completed_at(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var authPayloadImplementors = []string{"AuthPayload"}
 
 func (ec *executionContext) _AuthPayload(ctx context.Context, sel ast.SelectionSet, obj *model.AuthPayload) graphql.Marshaler {
@@ -7784,6 +10773,60 @@ func (ec *executionContext) _AuthPayload(ctx context.Context, sel ast.SelectionS
 			}
 		case "user":
 			out.Values[i] = ec._AuthPayload_user(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var bulkAiTagResultImplementors = []string{"BulkAiTagResult"}
+
+func (ec *executionContext) _BulkAiTagResult(ctx context.Context, sel ast.SelectionSet, obj *model.BulkAiTagResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, bulkAiTagResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BulkAiTagResult")
+		case "queued_count":
+			out.Values[i] = ec._BulkAiTagResult_queued_count(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "skipped_count":
+			out.Values[i] = ec._BulkAiTagResult_skipped_count(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._BulkAiTagResult_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._BulkAiTagResult_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -7873,6 +10916,8 @@ func (ec *executionContext) _File(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "deleted_at":
+			out.Values[i] = ec._File_deleted_at(ctx, field, obj)
 		case "share_link":
 			field := field
 
@@ -8014,6 +11059,60 @@ func (ec *executionContext) _FileListResponse(ctx context.Context, sel ast.Selec
 	return out
 }
 
+var fileTagInfoImplementors = []string{"FileTagInfo"}
+
+func (ec *executionContext) _FileTagInfo(ctx context.Context, sel ast.SelectionSet, obj *model.FileTagInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fileTagInfoImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FileTagInfo")
+		case "name":
+			out.Values[i] = ec._FileTagInfo_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "is_ai_generated":
+			out.Values[i] = ec._FileTagInfo_is_ai_generated(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "confidence":
+			out.Values[i] = ec._FileTagInfo_confidence(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "count":
+			out.Values[i] = ec._FileTagInfo_count(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var fileTypeEntryImplementors = []string{"FileTypeEntry"}
 
 func (ec *executionContext) _FileTypeEntry(ctx context.Context, sel ast.SelectionSet, obj *model.FileTypeEntry) graphql.Marshaler {
@@ -8096,6 +11195,8 @@ func (ec *executionContext) _Folder(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "deleted_at":
+			out.Values[i] = ec._Folder_deleted_at(ctx, field, obj)
 		case "share_link":
 			field := field
 
@@ -8555,6 +11656,83 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "trashFile":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_trashFile(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "trashFolder":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_trashFolder(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "restoreFile":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_restoreFile(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "restoreFolder":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_restoreFolder(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "permanentDeleteFile":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_permanentDeleteFile(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "permanentDeleteFolder":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_permanentDeleteFolder(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "emptyTrash":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_emptyTrash(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateFileTags":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateFileTags(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "generateAiTags":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_generateAiTags(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "generateAiDescription":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_generateAiDescription(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "bulkGenerateAiTags":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_bulkGenerateAiTags(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "adminDeleteFile":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_adminDeleteFile(ctx, field)
@@ -8900,6 +12078,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "trash":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_trash(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "adminFiles":
 			field := field
 
@@ -8932,6 +12132,135 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_adminStats(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "allTags":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_allTags(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "popularTags":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_popularTags(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "searchSuggestions":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_searchSuggestions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "aiTags":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_aiTags(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "aiDescription":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_aiDescription(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "aiAnalysis":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_aiAnalysis(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -8993,6 +12322,60 @@ func (ec *executionContext) _RegistrationEntry(ctx context.Context, sel ast.Sele
 			}
 		case "count":
 			out.Values[i] = ec._RegistrationEntry_count(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var searchSuggestionImplementors = []string{"SearchSuggestion"}
+
+func (ec *executionContext) _SearchSuggestion(ctx context.Context, sel ast.SelectionSet, obj *model.SearchSuggestion) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, searchSuggestionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SearchSuggestion")
+		case "type":
+			out.Values[i] = ec._SearchSuggestion_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "value":
+			out.Values[i] = ec._SearchSuggestion_value(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "id":
+			out.Values[i] = ec._SearchSuggestion_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "count":
+			out.Values[i] = ec._SearchSuggestion_count(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -9154,6 +12537,65 @@ func (ec *executionContext) _StatsResponse(ctx context.Context, sel ast.Selectio
 			out.Values[i] = ec._StatsResponse_upload_history(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var trashResponseImplementors = []string{"TrashResponse"}
+
+func (ec *executionContext) _TrashResponse(ctx context.Context, sel ast.SelectionSet, obj *model.TrashResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, trashResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TrashResponse")
+		case "files":
+			out.Values[i] = ec._TrashResponse_files(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "folders":
+			out.Values[i] = ec._TrashResponse_folders(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "page":
+			out.Values[i] = ec._TrashResponse_page(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "page_size":
+			out.Values[i] = ec._TrashResponse_page_size(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "total":
+			out.Values[i] = ec._TrashResponse_total(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -9809,6 +13251,48 @@ func (ec *executionContext) marshalNAdminStatsResponse2ᚖsecurevaultᚑbackend�
 	return ec._AdminStatsResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNAiAnalysisResult2securevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAiAnalysisResult(ctx context.Context, sel ast.SelectionSet, v model.AiAnalysisResult) graphql.Marshaler {
+	return ec._AiAnalysisResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAiAnalysisResult2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAiAnalysisResult(ctx context.Context, sel ast.SelectionSet, v *model.AiAnalysisResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AiAnalysisResult(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNAiDescriptionResult2securevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAiDescriptionResult(ctx context.Context, sel ast.SelectionSet, v model.AiDescriptionResult) graphql.Marshaler {
+	return ec._AiDescriptionResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAiDescriptionResult2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAiDescriptionResult(ctx context.Context, sel ast.SelectionSet, v *model.AiDescriptionResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AiDescriptionResult(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNAiTagJob2securevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAiTagJob(ctx context.Context, sel ast.SelectionSet, v model.AiTagJob) graphql.Marshaler {
+	return ec._AiTagJob(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAiTagJob2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAiTagJob(ctx context.Context, sel ast.SelectionSet, v *model.AiTagJob) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AiTagJob(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNAuthPayload2securevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAuthPayload(ctx context.Context, sel ast.SelectionSet, v model.AuthPayload) graphql.Marshaler {
 	return ec._AuthPayload(ctx, sel, &v)
 }
@@ -9837,6 +13321,20 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNBulkAiTagResult2securevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐBulkAiTagResult(ctx context.Context, sel ast.SelectionSet, v model.BulkAiTagResult) graphql.Marshaler {
+	return ec._BulkAiTagResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBulkAiTagResult2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐBulkAiTagResult(ctx context.Context, sel ast.SelectionSet, v *model.BulkAiTagResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BulkAiTagResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNDateTime2timeᚐTime(ctx context.Context, v any) (time.Time, error) {
@@ -9920,6 +13418,60 @@ func (ec *executionContext) marshalNFileListResponse2ᚖsecurevaultᚑbackendᚋ
 	return ec._FileListResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNFileTagInfo2ᚕᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐFileTagInfoᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FileTagInfo) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFileTagInfo2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐFileTagInfo(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNFileTagInfo2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐFileTagInfo(ctx context.Context, sel ast.SelectionSet, v *model.FileTagInfo) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FileTagInfo(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNFileTypeEntry2ᚕᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐFileTypeEntryᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FileTypeEntry) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -9988,6 +13540,36 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 		}
 	}
 	return graphql.WrapContextMarshaler(ctx, res)
+}
+
+func (ec *executionContext) unmarshalNFloat2ᚕfloat64ᚄ(ctx context.Context, v any) ([]float64, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]float64, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNFloat2float64(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNFloat2ᚕfloat64ᚄ(ctx context.Context, sel ast.SelectionSet, v []float64) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNFloat2float64(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNFolder2securevaultᚑbackendᚋsrcᚋmodelsᚐFolder(ctx context.Context, sel ast.SelectionSet, v models.Folder) graphql.Marshaler {
@@ -10174,6 +13756,60 @@ func (ec *executionContext) marshalNRegistrationEntry2ᚕsecurevaultᚑbackend�
 	return ret
 }
 
+func (ec *executionContext) marshalNSearchSuggestion2ᚕᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐSearchSuggestionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SearchSuggestion) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSearchSuggestion2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐSearchSuggestion(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSearchSuggestion2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐSearchSuggestion(ctx context.Context, sel ast.SelectionSet, v *model.SearchSuggestion) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SearchSuggestion(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNShareLink2securevaultᚑbackendᚋsrcᚋmodelsᚐShareLink(ctx context.Context, sel ast.SelectionSet, v models.ShareLink) graphql.Marshaler {
 	return ec._ShareLink(ctx, sel, &v)
 }
@@ -10248,6 +13884,20 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
+func (ec *executionContext) marshalNTrashResponse2securevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐTrashResponse(ctx context.Context, sel ast.SelectionSet, v model.TrashResponse) graphql.Marshaler {
+	return ec._TrashResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTrashResponse2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐTrashResponse(ctx context.Context, sel ast.SelectionSet, v *model.TrashResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TrashResponse(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v any) (uuid.UUID, error) {
 	res, err := ec.unmarshalInputUUID(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -10255,6 +13905,36 @@ func (ec *executionContext) unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(c
 
 func (ec *executionContext) marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, sel ast.SelectionSet, v uuid.UUID) graphql.Marshaler {
 	return ec._UUID(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx context.Context, v any) ([]uuid.UUID, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]uuid.UUID, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx context.Context, sel ast.SelectionSet, v []uuid.UUID) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNUploadHistoryEntry2securevaultᚑbackendᚋsrcᚋapiᚐUploadHistoryEntry(ctx context.Context, sel ast.SelectionSet, v api.UploadHistoryEntry) graphql.Marshaler {
@@ -10635,6 +14315,13 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalOAiTagJob2ᚖsecurevaultᚑbackendᚋsrcᚋgraphqlᚋgraphᚋmodelᚐAiTagJob(ctx context.Context, sel ast.SelectionSet, v *model.AiTagJob) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._AiTagJob(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v any) (bool, error) {

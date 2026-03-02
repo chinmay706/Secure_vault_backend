@@ -502,6 +502,209 @@ func (r *mutationResolver) DeleteFolderShareLink(ctx context.Context, id uuid.UU
 	return true, nil
 }
 
+// TrashFile is the resolver for the trashFile field.
+func (r *mutationResolver) TrashFile(ctx context.Context, id uuid.UUID) (bool, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	err = r.FileService.TrashFile(id, userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to trash file: %w", err)
+	}
+
+	return true, nil
+}
+
+// TrashFolder is the resolver for the trashFolder field.
+func (r *mutationResolver) TrashFolder(ctx context.Context, id uuid.UUID, recursive *bool) (bool, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// Default recursive to true
+	rec := true
+	if recursive != nil {
+		rec = *recursive
+	}
+
+	err = r.FolderService.TrashFolder(id, userID, rec)
+	if err != nil {
+		return false, fmt.Errorf("failed to trash folder: %w", err)
+	}
+
+	return true, nil
+}
+
+// RestoreFile is the resolver for the restoreFile field.
+func (r *mutationResolver) RestoreFile(ctx context.Context, id uuid.UUID) (*models.File, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := r.FileService.RestoreFile(id, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to restore file: %w", err)
+	}
+
+	return file, nil
+}
+
+// RestoreFolder is the resolver for the restoreFolder field.
+func (r *mutationResolver) RestoreFolder(ctx context.Context, id uuid.UUID) (*models.Folder, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	folder, err := r.FolderService.RestoreFolder(id, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to restore folder: %w", err)
+	}
+
+	return folder, nil
+}
+
+// PermanentDeleteFile is the resolver for the permanentDeleteFile field.
+func (r *mutationResolver) PermanentDeleteFile(ctx context.Context, id uuid.UUID) (bool, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	err = r.FileService.PermanentDeleteFile(id, userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to permanently delete file: %w", err)
+	}
+
+	return true, nil
+}
+
+// PermanentDeleteFolder is the resolver for the permanentDeleteFolder field.
+func (r *mutationResolver) PermanentDeleteFolder(ctx context.Context, id uuid.UUID) (bool, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	err = r.FolderService.PermanentDeleteFolder(id, userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to permanently delete folder: %w", err)
+	}
+
+	return true, nil
+}
+
+// EmptyTrash is the resolver for the emptyTrash field.
+func (r *mutationResolver) EmptyTrash(ctx context.Context) (bool, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// Empty trashed files
+	err = r.FileService.EmptyTrashFiles(userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to empty trash files: %w", err)
+	}
+
+	// Empty trashed folders
+	err = r.FolderService.EmptyTrashFolders(userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to empty trash folders: %w", err)
+	}
+
+	return true, nil
+}
+
+// UpdateFileTags is the resolver for the updateFileTags field.
+func (r *mutationResolver) UpdateFileTags(ctx context.Context, fileID uuid.UUID, tags []string) (*models.File, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := r.FileService.UpdateFileTags(fileID, userID, tags)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update file tags: %w", err)
+	}
+
+	return file, nil
+}
+
+// GenerateAiTags is the resolver for the generateAiTags field.
+func (r *mutationResolver) GenerateAiTags(ctx context.Context, fileID uuid.UUID) (*model.AiTagJob, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.AiTagService == nil || !r.AiTagService.IsEnabled() {
+		return nil, fmt.Errorf("AI tag generation is not enabled")
+	}
+
+	services.TryRunBackground(func() { r.AiTagService.GenerateTagsForFile(fileID, userID) })
+
+	// Return a pending job status
+	return &model.AiTagJob{
+		FileID:           fileID,
+		Status:           "processing",
+		SuggestedTags:    []string{},
+		ConfidenceScores: []float64{},
+		AiDescription:    "",
+	}, nil
+}
+
+// GenerateAiDescription is the resolver for the generateAiDescription field.
+func (r *mutationResolver) GenerateAiDescription(ctx context.Context, fileID uuid.UUID) (*model.AiDescriptionResult, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.AiTagService == nil || !r.AiTagService.IsEnabled() {
+		return nil, fmt.Errorf("AI service is not enabled")
+	}
+
+	result, err := r.AiTagService.GenerateDescription(fileID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate AI description: %w", err)
+	}
+
+	return &model.AiDescriptionResult{
+		FileID:      result.FileID,
+		Description: result.Description,
+		Status:      result.Status,
+	}, nil
+}
+
+// BulkGenerateAiTags is the resolver for the bulkGenerateAiTags field.
+func (r *mutationResolver) BulkGenerateAiTags(ctx context.Context, fileIds []uuid.UUID) (*model.BulkAiTagResult, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.AiTagService == nil || !r.AiTagService.IsEnabled() {
+		return nil, fmt.Errorf("AI service is not enabled")
+	}
+
+	result, err := r.AiTagService.BulkGenerateTags(fileIds, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to bulk generate AI tags: %w", err)
+	}
+
+	return &model.BulkAiTagResult{
+		QueuedCount:  result.QueuedCount,
+		SkippedCount: result.SkippedCount,
+		Status:       result.Status,
+		Message:      result.Message,
+	}, nil
+}
+
 // AdminDeleteFile is the resolver for the adminDeleteFile field.
 func (r *mutationResolver) AdminDeleteFile(ctx context.Context, id uuid.UUID) (bool, error) {
 	// Extract user ID from context and verify admin role
@@ -975,6 +1178,44 @@ func (r *queryResolver) PublicFolder(ctx context.Context, token string, page *in
 	return response, nil
 }
 
+// Trash is the resolver for the trash field.
+func (r *queryResolver) Trash(ctx context.Context, page *int, pageSize *int) (*model.TrashResponse, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set defaults
+	p := 1
+	ps := 20
+	if page != nil && *page > 0 {
+		p = *page
+	}
+	if pageSize != nil && *pageSize > 0 {
+		ps = *pageSize
+	}
+
+	// Get trashed files
+	files, totalFiles, err := r.FileService.GetTrashedFiles(userID, p, ps)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trashed files: %w", err)
+	}
+
+	// Get trashed folders
+	folders, totalFolders, err := r.FolderService.GetTrashedFolders(userID, p, ps)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trashed folders: %w", err)
+	}
+
+	return &model.TrashResponse{
+		Files:    files,
+		Folders:  folders,
+		Page:     p,
+		PageSize: ps,
+		Total:    totalFiles + totalFolders,
+	}, nil
+}
+
 // AdminFiles is the resolver for the adminFiles field.
 func (r *queryResolver) AdminFiles(ctx context.Context, userID *uuid.UUID, userEmail *string, filename *string, mimeType *string, tags *string, page *int, pageSize *int) (*api.AdminFilesResponse, error) {
 	// Extract current user ID from context and verify admin role
@@ -1068,6 +1309,184 @@ func (r *queryResolver) AdminStats(ctx context.Context) (*api.AdminStatsResponse
 	}
 
 	return adminResponse, nil
+}
+
+// AllTags is the resolver for the allTags field.
+func (r *queryResolver) AllTags(ctx context.Context) ([]*model.FileTagInfo, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tags, err := r.FileService.GetAllTagsForUser(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all tags: %w", err)
+	}
+
+	result := make([]*model.FileTagInfo, len(tags))
+	for i, t := range tags {
+		result[i] = &model.FileTagInfo{
+			Name:          t.Name,
+			IsAiGenerated: t.IsAiGenerated,
+			Confidence:    t.Confidence,
+			Count:         t.FileCount,
+		}
+	}
+
+	return result, nil
+}
+
+// PopularTags is the resolver for the popularTags field.
+func (r *queryResolver) PopularTags(ctx context.Context, limit *int) ([]*model.FileTagInfo, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	lim := 10
+	if limit != nil && *limit > 0 {
+		lim = *limit
+	}
+
+	tags, err := r.FileService.GetPopularTags(userID, lim)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get popular tags: %w", err)
+	}
+
+	result := make([]*model.FileTagInfo, len(tags))
+	for i, t := range tags {
+		result[i] = &model.FileTagInfo{
+			Name:          t.Name,
+			IsAiGenerated: t.IsAiGenerated,
+			Confidence:    t.Confidence,
+			Count:         t.FileCount,
+		}
+	}
+
+	return result, nil
+}
+
+// SearchSuggestions is the resolver for the searchSuggestions field.
+func (r *queryResolver) SearchSuggestions(ctx context.Context, query string, limit *int) ([]*model.SearchSuggestion, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	lim := 10
+	if limit != nil && *limit > 0 {
+		lim = *limit
+	}
+
+	suggestions, err := r.FileService.SearchSuggestions(userID, query, lim)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get search suggestions: %w", err)
+	}
+
+	result := make([]*model.SearchSuggestion, len(suggestions))
+	for i, s := range suggestions {
+		result[i] = &model.SearchSuggestion{
+			Type:  s.Type,
+			Value: s.Value,
+			ID:    s.ID,
+			Count: s.Count,
+		}
+	}
+
+	return result, nil
+}
+
+// AiTags is the resolver for the aiTags field.
+func (r *queryResolver) AiTags(ctx context.Context, fileID uuid.UUID) (*model.AiTagJob, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.AiTagService == nil {
+		return nil, fmt.Errorf("AI tag service not available")
+	}
+
+	job, err := r.AiTagService.GetAiTagJob(fileID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AI tags: %w", err)
+	}
+
+	if job == nil {
+		return nil, nil // No job exists yet
+	}
+
+	return &model.AiTagJob{
+		ID:               job.ID,
+		FileID:           job.FileID,
+		Status:           job.Status,
+		SuggestedTags:    job.SuggestedTags,
+		ConfidenceScores: job.ConfidenceScores,
+		AiDescription:    job.AiDescription,
+		SuggestedFolder:  &job.SuggestedFolder,
+		ErrorMessage:     job.ErrorMessage,
+		CreatedAt:        job.CreatedAt,
+		CompletedAt:      job.CompletedAt,
+	}, nil
+}
+
+// AiDescription is the resolver for the aiDescription field.
+func (r *queryResolver) AiDescription(ctx context.Context, fileID uuid.UUID) (*model.AiDescriptionResult, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.AiTagService == nil || !r.AiTagService.IsEnabled() {
+		return nil, fmt.Errorf("AI service is not enabled")
+	}
+
+	result, err := r.AiTagService.GenerateDescription(fileID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AI description: %w", err)
+	}
+
+	return &model.AiDescriptionResult{
+		FileID:      result.FileID,
+		Description: result.Description,
+		Status:      result.Status,
+	}, nil
+}
+
+// AiAnalysis is the resolver for the aiAnalysis field.
+func (r *queryResolver) AiAnalysis(ctx context.Context, fileID uuid.UUID) (*model.AiAnalysisResult, error) {
+	userID, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.AiTagService == nil {
+		return nil, fmt.Errorf("AI service not available")
+	}
+
+	job, err := r.AiTagService.GetAiTagJob(fileID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AI analysis: %w", err)
+	}
+
+	if job == nil {
+		return &model.AiAnalysisResult{
+			FileID:           fileID,
+			SuggestedTags:    []string{},
+			ConfidenceScores: []float64{},
+			Description:      "",
+			Status:           "not_started",
+		}, nil
+	}
+
+	return &model.AiAnalysisResult{
+		FileID:           job.FileID,
+		SuggestedTags:    job.SuggestedTags,
+		ConfidenceScores: job.ConfidenceScores,
+		Description:      job.AiDescription,
+		SuggestedFolder:  &job.SuggestedFolder,
+		Status:           job.Status,
+	}, nil
 }
 
 // FilesByType is the resolver for the files_by_type field.

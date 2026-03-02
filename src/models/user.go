@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,14 +17,17 @@ const (
 
 // User represents a user in the system
 type User struct {
-	ID                  uuid.UUID `json:"id" db:"id"`
-	Email               string    `json:"email" db:"email"`
-	PasswordHash        string    `json:"-" db:"password_hash"` // Never serialize password hash
-	Role                UserRole  `json:"role" db:"role"`
-	RateLimitRps        int       `json:"rate_limit_rps" db:"rate_limit_rps"`
-	StorageQuotaBytes   int64     `json:"storage_quota_bytes" db:"storage_quota_bytes"`
-	CreatedAt           time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt           time.Time `json:"updated_at" db:"updated_at"`
+	ID                  uuid.UUID      `json:"id" db:"id"`
+	Email               string         `json:"email" db:"email"`
+	PasswordHash        string         `json:"-" db:"password_hash"` // Never serialize password hash
+	Role                UserRole       `json:"role" db:"role"`
+	RateLimitRps        int            `json:"rate_limit_rps" db:"rate_limit_rps"`
+	StorageQuotaBytes   int64          `json:"storage_quota_bytes" db:"storage_quota_bytes"`
+	GoogleID            sql.NullString `json:"-" db:"google_id"`
+	Name                sql.NullString `json:"name,omitempty" db:"name"`
+	AvatarURL           sql.NullString `json:"avatar_url,omitempty" db:"avatar_url"`
+	CreatedAt           time.Time      `json:"created_at" db:"created_at"`
+	UpdatedAt           time.Time      `json:"updated_at" db:"updated_at"`
 }
 
 // NewUser creates a new user with default settings
@@ -35,6 +39,22 @@ func NewUser(email, passwordHash string, role UserRole) *User {
 		Role:              role,
 		RateLimitRps:      2,                    // Default 2 RPS as per spec
 		StorageQuotaBytes: 10 * 1024 * 1024,    // Default 10 MB as per spec
+		CreatedAt:         time.Now().UTC(),
+		UpdatedAt:         time.Now().UTC(),
+	}
+}
+
+// NewGoogleUser creates a new user from Google OAuth data (no password)
+func NewGoogleUser(email, googleID, name, avatarURL string) *User {
+	return &User{
+		ID:                uuid.New(),
+		Email:             email,
+		Role:              UserRoleUser,
+		RateLimitRps:      2,
+		StorageQuotaBytes: 10 * 1024 * 1024,
+		GoogleID:          sql.NullString{String: googleID, Valid: true},
+		Name:              sql.NullString{String: name, Valid: name != ""},
+		AvatarURL:         sql.NullString{String: avatarURL, Valid: avatarURL != ""},
 		CreatedAt:         time.Now().UTC(),
 		UpdatedAt:         time.Now().UTC(),
 	}

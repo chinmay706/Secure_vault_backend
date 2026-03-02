@@ -18,8 +18,8 @@ type DB struct {
 	*sql.DB
 }
 func init() {
-	// Load the .env file from the current directory
-	if err := godotenv.Load(".env"); err != nil {
+	// Overload ensures .env values take priority over existing environment variables
+	if err := godotenv.Overload(".env"); err != nil {
 		log.Println("No .env file found in the current directory, falling back to system envs")
 	} else {
 		log.Println("Loaded .env file from the current directory")

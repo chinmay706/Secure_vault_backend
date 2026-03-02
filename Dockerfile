@@ -23,13 +23,16 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main securevault-backend/src
 
 # Final stage
-FROM alpine:latest
+FROM alpine:3.19
 
 # Install ca-certificates for HTTPS calls
 RUN apk --no-cache add ca-certificates
 
+# Create non-root user for security
+RUN adduser -D -g '' appuser
+
 # Create app directory
-WORKDIR /root/
+WORKDIR /app
 
 # Copy the binary from builder stage
 COPY --from=builder /app/main .
@@ -37,14 +40,18 @@ COPY --from=builder /app/main .
 # Copy migration files
 COPY --from=builder /app/src/migrations/ ./migrations/
 
-# Copy environment file
-COPY --from=builder /app/.env ./
+# Create storage directory and set ownership
+RUN mkdir -p ./storage && chown -R appuser:appuser /app
 
-# Create storage directory
-RUN mkdir -p ./storage
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -qO- http://localhost:8080/health || exit 1
 
 # Command to run
 CMD ["./main"]
