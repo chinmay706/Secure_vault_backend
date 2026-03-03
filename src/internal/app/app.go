@@ -67,7 +67,11 @@ func NewApp() (*App, error) {
 	statsService := services.NewStatsService(database.DB)
 	
 	// Initialize storage service with S3 integration
-	storageService, err := services.NewStorageService(database.DB, "./storage", 100*1024*1024) // 100MB max file size
+	storagePath := os.Getenv("STORAGE_PATH")
+	if storagePath == "" {
+		storagePath = "./storage"
+	}
+	storageService, err := services.NewStorageService(database.DB, storagePath, 100*1024*1024) // 100MB max file size
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize storage service: %w", err)
 	}
