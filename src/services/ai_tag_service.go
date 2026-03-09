@@ -121,9 +121,10 @@ func (s *AiTagService) Provider() string {
 // maxSizes for AI analysis per file type
 const (
 	maxImageSizeForAI      = 10 * 1024 * 1024 // 10 MB
-	maxTextSizeForAI       = 100 * 1024        // 100 KB
+	maxTextSizeForAI       = 100 * 1024        // 100 KB — gate for entering the text pipeline
 	maxPDFSizeForAI        = 5 * 1024 * 1024   // 5 MB
 	maxDOCXSizeForAI       = 5 * 1024 * 1024   // 5 MB
+	maxTaggingTextSize     = 15 * 1024          // 15 KB — max text actually sent to AI for tagging
 	maxDailyAIDescriptions = 50
 	bulkDelayBetweenFiles  = 1500 * time.Millisecond
 )
@@ -604,6 +605,9 @@ func (s *AiTagService) analyzeText(blobHash, filename string) (*AiAnalysisResult
 		return nil, fmt.Errorf("failed to read blob: %w", err)
 	}
 	content := string(data[:n])
+	if len(content) > maxTaggingTextSize {
+		content = content[:maxTaggingTextSize]
+	}
 
 	prompt := fmt.Sprintf(`Analyze the following document and return a JSON object with exactly these keys:
 
@@ -677,8 +681,8 @@ func (s *AiTagService) analyzePDF(blobHash, filename string) (*AiAnalysisResult,
 		return s.analyzeMetadataOnly(filename, "application/pdf", int64(len(data)))
 	}
 
-	if len(content) > maxTextSizeForAI {
-		content = content[:maxTextSizeForAI]
+	if len(content) > maxTaggingTextSize {
+		content = content[:maxTaggingTextSize]
 	}
 
 	prompt := fmt.Sprintf(`Analyze the following document and return a JSON object with exactly these keys:
@@ -738,8 +742,8 @@ func (s *AiTagService) analyzeDOCX(blobHash, filename string) (*AiAnalysisResult
 		return s.analyzeMetadataOnly(filename, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", int64(len(data)))
 	}
 
-	if len(content) > maxTextSizeForAI {
-		content = content[:maxTextSizeForAI]
+	if len(content) > maxTaggingTextSize {
+		content = content[:maxTaggingTextSize]
 	}
 
 	prompt := fmt.Sprintf(`Analyze the following document and return a JSON object with exactly these keys:
