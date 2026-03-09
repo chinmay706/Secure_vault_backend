@@ -1,6 +1,7 @@
 package services
 
 import (
+	"archive/zip"
 	"bytes"
 	"database/sql"
 	"database/sql/driver"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ledongthuc/pdf"
 )
 
 // AiTagJob represents an AI tag generation job (V2: includes description + folder)
@@ -121,6 +123,7 @@ const (
 	maxImageSizeForAI      = 10 * 1024 * 1024 // 10 MB
 	maxTextSizeForAI       = 100 * 1024        // 100 KB
 	maxPDFSizeForAI        = 5 * 1024 * 1024   // 5 MB
+	maxDOCXSizeForAI       = 5 * 1024 * 1024   // 5 MB
 	maxDailyAIDescriptions = 50
 	bulkDelayBetweenFiles  = 1500 * time.Millisecond
 )
@@ -189,7 +192,9 @@ func (s *AiTagService) GenerateTagsForFile(fileID, ownerID uuid.UUID) {
 	case isTextualMimeType(mimeType) && sizeBytes <= maxTextSizeForAI:
 		result, analysisErr = s.analyzeText(blobHash, originalFilename)
 	case mimeType == "application/pdf" && sizeBytes <= maxPDFSizeForAI:
-		result, analysisErr = s.analyzeText(blobHash, originalFilename)
+		result, analysisErr = s.analyzePDF(blobHash, originalFilename)
+	case mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" && sizeBytes <= maxDOCXSizeForAI:
+		result, analysisErr = s.analyzeDOCX(blobHash, originalFilename)
 	default:
 		result, analysisErr = s.analyzeMetadataOnly(originalFilename, mimeType, sizeBytes)
 	}
@@ -632,6 +637,145 @@ Size: %d bytes
 Return ONLY valid JSON, no markdown fences.`, filename, mimeType, sizeBytes)
 
 	return s.callAI(prompt, "", "")
+}
+
+func (s *AiTagService) analyzePDF(blobHash, filename string) (*AiAnalysisResult, error) {
+	log.Printf("[AI-TAG] Analyzing PDF content (provider: %s, hash: %s)", s.aiProvider, blobHash[:8])
+
+	reader, err := s.storageService.DownloadFile(blobHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to download blob: %w", err)
+	}
+	defer reader.Close()
+
+	data, err := io.ReadAll(io.LimitReader(reader, maxPDFSizeForAI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read blob: %w", err)
+	}
+
+	pdfReader, err := pdf.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return nil, fmt.Errorf("PDF parse failed: %w", err)
+	}
+
+	var sb strings.Builder
+	for i := 1; i <= pdfReader.NumPage(); i++ {
+		page := pdfReader.Page(i)
+		if page.V.IsNull() {
+			continue
+		}
+		text, err := page.GetPlainText(nil)
+		if err != nil {
+			continue
+		}
+		sb.WriteString(text)
+		sb.WriteString("\n")
+	}
+
+	content := sb.String()
+	if strings.TrimSpace(content) == "" {
+		return s.analyzeMetadataOnly(filename, "application/pdf", int64(len(data)))
+	}
+
+	if len(content) > maxTextSizeForAI {
+		content = content[:maxTextSizeForAI]
+	}
+
+	prompt := fmt.Sprintf(`Analyze the following document and return a JSON object with exactly these keys:
+
+1. "tags": array of exactly 3-4 descriptive tags (lowercase, short phrases) capturing main topics. Keep it concise.
+2. "description": a 1-2 sentence summary of the document
+3. "suggested_folder": suggest ONE folder name where this file would logically belong (e.g. "Work/Reports", "School/Homework", "Finance/Invoices"). Use forward slashes for nested folders.
+
+Document filename: "%s"
+Document content:
+
+%s
+
+Return ONLY valid JSON, no markdown fences.`, filename, content)
+
+	return s.callAI(prompt, "", "")
+}
+
+func (s *AiTagService) analyzeDOCX(blobHash, filename string) (*AiAnalysisResult, error) {
+	log.Printf("[AI-TAG] Analyzing DOCX content (provider: %s, hash: %s)", s.aiProvider, blobHash[:8])
+
+	reader, err := s.storageService.DownloadFile(blobHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to download blob: %w", err)
+	}
+	defer reader.Close()
+
+	data, err := io.ReadAll(io.LimitReader(reader, maxDOCXSizeForAI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read blob: %w", err)
+	}
+
+	zipReader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return nil, fmt.Errorf("DOCX zip open failed: %w", err)
+	}
+
+	var content string
+	for _, file := range zipReader.File {
+		if file.Name != "word/document.xml" {
+			continue
+		}
+		rc, err := file.Open()
+		if err != nil {
+			return nil, fmt.Errorf("DOCX document.xml open failed: %w", err)
+		}
+		xmlData, err := io.ReadAll(rc)
+		rc.Close()
+		if err != nil {
+			return nil, fmt.Errorf("DOCX document.xml read failed: %w", err)
+		}
+		content = stripXMLTagsForTagging(string(xmlData))
+		break
+	}
+
+	if strings.TrimSpace(content) == "" {
+		return s.analyzeMetadataOnly(filename, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", int64(len(data)))
+	}
+
+	if len(content) > maxTextSizeForAI {
+		content = content[:maxTextSizeForAI]
+	}
+
+	prompt := fmt.Sprintf(`Analyze the following document and return a JSON object with exactly these keys:
+
+1. "tags": array of exactly 3-4 descriptive tags (lowercase, short phrases) capturing main topics. Keep it concise.
+2. "description": a 1-2 sentence summary of the document
+3. "suggested_folder": suggest ONE folder name where this file would logically belong (e.g. "Work/Reports", "School/Homework", "Finance/Invoices"). Use forward slashes for nested folders.
+
+Document filename: "%s"
+Document content:
+
+%s
+
+Return ONLY valid JSON, no markdown fences.`, filename, content)
+
+	return s.callAI(prompt, "", "")
+}
+
+func stripXMLTagsForTagging(xmlContent string) string {
+	var sb strings.Builder
+	inTag := false
+	for _, ch := range xmlContent {
+		switch {
+		case ch == '<':
+			inTag = true
+		case ch == '>':
+			inTag = false
+		case !inTag:
+			sb.WriteRune(ch)
+		}
+	}
+	result := sb.String()
+	for strings.Contains(result, "  ") {
+		result = strings.ReplaceAll(result, "  ", " ")
+	}
+	return strings.TrimSpace(result)
 }
 
 // ============================================================
